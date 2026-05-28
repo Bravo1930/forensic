@@ -30,8 +30,11 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
+import { List } from "react-window";
+
+const ROW_HEIGHT = 88;
 
 const caseTypeLabels: Record<string, string> = {
   civil: "Civil",
@@ -200,41 +203,6 @@ function CreateCaseDialog({ onCreated }: { onCreated: () => void }) {
             </div>
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">
-                Cliente / Representado
-              </Label>
-              <Input
-                placeholder="Nombre del cliente"
-                value={form.clientName}
-                onChange={e => setForm({ ...form, clientName: e.target.value })}
-                className="bg-background border-border"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">
-                Parte contraria
-              </Label>
-              <Input
-                placeholder="Nombre de la contraparte"
-                value={form.opposingParty}
-                onChange={e =>
-                  setForm({ ...form, opposingParty: e.target.value })
-                }
-                className="bg-background border-border"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">
-                Tribunal / Juzgado
-              </Label>
-              <Input
-                placeholder="Ej: Juzgado 3° Civil"
-                value={form.court}
-                onChange={e => setForm({ ...form, court: e.target.value })}
-                className="bg-background border-border"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">
                 Prioridad
               </Label>
               <Select
@@ -285,10 +253,121 @@ function CreateCaseDialog({ onCreated }: { onCreated: () => void }) {
   );
 }
 
+interface CaseRowProps {
+  cases: any[];
+  navigate: (path: string) => void;
+  archiveCase: { mutate: (data: any) => void; isPending: boolean };
+  deleteCase: { mutate: (id: number) => void; isPending: boolean };
+  statusConfig: Record<string, { label: string; className: string }>;
+  priorityConfig: Record<string, { label: string; className: string }>;
+  caseTypeLabels: Record<string, string>;
+}
+
+function CaseRow({
+  index,
+  style,
+  cases,
+  navigate,
+  archiveCase,
+  deleteCase,
+  statusConfig,
+  priorityConfig,
+  caseTypeLabels,
+}: {
+  index: number;
+  style: React.CSSProperties;
+} & CaseRowProps) {
+  const c = cases[index];
+
+  return (
+    <div style={style}>
+      <Card
+        className="bg-card border-border hover:border-primary/30 transition-all cursor-pointer"
+        onClick={() => navigate(`/casos/${c.id}`)}
+      >
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+              <FolderOpen className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold truncate">{c.title}</h3>
+                {c.caseNumber && (
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    #{c.caseNumber}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                <span>{caseTypeLabels[c.caseType]}</span>
+                {c.clientName && <span>· {c.clientName}</span>}
+                {c.court && <span>· {c.court}</span>}
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  {new Date(c.updatedAt).toLocaleDateString("es-MX")}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge
+                variant="outline"
+                className={`text-[10px] px-2 py-0 h-5 ${statusConfig[c.status]?.className}`}
+              >
+                {statusConfig[c.status]?.label}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={`text-[10px] px-2 py-0 h-5 ${priorityConfig[c.priority]?.className}`}
+              >
+                {priorityConfig[c.priority]?.label}
+              </Badge>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {c.status === "activo" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 hover:text-yellow-400"
+                    onClick={e => {
+                      e.stopPropagation();
+                      archiveCase.mutate({
+                        id: c.id,
+                        status: "archivado" as const,
+                      });
+                    }}
+                  >
+                    <Archive className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 hover:text-destructive"
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (confirm("¿Eliminar este caso y toda su evidencia?")) {
+                      deleteCase.mutate(c.id);
+                    }
+                  }}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function Cases() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
+  const listRef = useRef<HTMLDivElement>(null);
+  const [listHeight, setListHeight] = useState(400);
 
   const { data: cases = [], isLoading } = trpc.cases.list.useQuery();
 
@@ -325,11 +404,32 @@ export default function Cases() {
     return matchSearch && matchStatus;
   });
 
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      const { height } = entries[0].contentRect;
+      if (height > 0) setListHeight(height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const itemData = {
+    cases: filtered,
+    navigate,
+    archiveCase,
+    deleteCase,
+    statusConfig,
+    priorityConfig,
+    caseTypeLabels,
+  };
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between shrink-0">
           <div>
             <h1 className="text-2xl font-bold">Gestión de Casos</h1>
             <p className="text-muted-foreground text-sm mt-1">
@@ -341,7 +441,7 @@ export default function Cases() {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-3 flex-wrap shrink-0">
           <div className="relative flex-1 min-w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -365,7 +465,7 @@ export default function Cases() {
           </Select>
         </div>
 
-        {/* Cases list */}
+        {/* Virtualized list */}
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">
             Cargando casos...
@@ -385,91 +485,14 @@ export default function Cases() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-2">
-            {filtered.map(c => (
-              <Card
-                key={c.id}
-                className="bg-card border-border hover:border-primary/30 transition-all cursor-pointer group"
-                onClick={() => navigate(`/casos/${c.id}`)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-                      <FolderOpen className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold truncate">{c.title}</h3>
-                        {c.caseNumber && (
-                          <span className="text-xs text-muted-foreground shrink-0">
-                            #{c.caseNumber}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                        <span>{caseTypeLabels[c.caseType]}</span>
-                        {c.clientName && <span>· {c.clientName}</span>}
-                        {c.court && <span>· {c.court}</span>}
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(c.updatedAt).toLocaleDateString("es-MX")}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] px-2 py-0 h-5 ${statusConfig[c.status]?.className}`}
-                      >
-                        {statusConfig[c.status]?.label}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] px-2 py-0 h-5 ${priorityConfig[c.priority]?.className}`}
-                      >
-                        {priorityConfig[c.priority]?.label}
-                      </Badge>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {c.status === "activo" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 hover:text-yellow-400"
-                            onClick={e => {
-                              e.stopPropagation();
-                              archiveCase.mutate({
-                                id: c.id,
-                                status: "archivado" as const,
-                              });
-                            }}
-                          >
-                            <Archive className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 hover:text-destructive"
-                          onClick={e => {
-                            e.stopPropagation();
-                            if (
-                              confirm(
-                                "¿Eliminar este caso y toda su evidencia?"
-                              )
-                            ) {
-                              deleteCase.mutate(c.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div ref={listRef} className="flex-1 min-h-0">
+            <List<CaseRowProps>
+              style={{ height: listHeight, width: "100%" }}
+              rowCount={filtered.length}
+              rowHeight={ROW_HEIGHT}
+              rowProps={itemData}
+              rowComponent={CaseRow}
+            />
           </div>
         )}
       </div>
