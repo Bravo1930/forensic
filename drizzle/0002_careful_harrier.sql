@@ -1,0 +1,20 @@
+ALTER TABLE `analyses` ADD `contradictionSummary` text;--> statement-breakpoint
+ALTER TABLE `analyses` ADD `factsTable` text;--> statement-breakpoint
+ALTER TABLE `analyses` ADD `weakPoints` text;--> statement-breakpoint
+CREATE INDEX `analyses_user_idx` ON `analyses` (`userId`);--> statement-breakpoint
+CREATE INDEX `analyses_case_idx` ON `analyses` (`caseId`);--> statement-breakpoint
+CREATE INDEX `analyses_status_idx` ON `analyses` (`status`);--> statement-breakpoint
+CREATE INDEX `cases_user_idx` ON `cases` (`userId`);--> statement-breakpoint
+CREATE INDEX `cases_status_idx` ON `cases` (`status`);--> statement-breakpoint
+CREATE INDEX `cases_updated_idx` ON `cases` (`updatedAt`);--> statement-breakpoint
+CREATE INDEX `evidence_case_idx` ON `evidence` (`caseId`);--> statement-breakpoint
+CREATE INDEX `evidence_user_idx` ON `evidence` (`userId`);--> statement-breakpoint
+CREATE INDEX `evidence_created_idx` ON `evidence` (`createdAt`);--> statement-breakpoint
+CREATE INDEX `image_comparisons_case_idx` ON `image_comparisons` (`caseId`);--> statement-breakpoint
+CREATE INDEX `image_comparisons_user_idx` ON `image_comparisons` (`userId`);--> statement-breakpoint
+CREATE INDEX `reports_case_idx` ON `reports` (`caseId`);--> statement-breakpoint
+CREATE INDEX `reports_user_idx` ON `reports` (`userId`);--> statement-breakpoint
+CREATE INDEX `stripe_events_processed_idx` ON `stripe_events` (`processed`);--> statement-breakpoint
+CREATE INDEX `subscriptions_user_idx` ON `subscriptions` (`userId`);--> statement-breakpoint
+CREATE INDEX `subscriptions_plan_active_idx` ON `subscriptions` (`plan`,`active`);--> statement-breakpoint
+CREATE INDEX `users_email_idx` ON `users` (`email`);

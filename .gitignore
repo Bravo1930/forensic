@@ -1,0 +1,133 @@
+# Dependencies
+**/node_modules
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+*.dist
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+*.bak
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Manus version file (auto-generated, not part of source)
+client/public/__manus__/version.json
+
+# Production environment (keep only .env.example)
+!.env.example
+
+# Uploads directory (user files)
+uploads/
+
+# Credentials backup files
+*.pem
+*.key
+credentials.json
+
+# Local SQLite database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Personal/user evidence files
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# Personal documents (text, Python scripts)
+chat_psicologico.txt
+correo_hijos.txt
+disputa_herencia.txt
+analizador_forense.py
+import re.py
+
+# Manus tooling
+.manus-logs/
+.manus/
+
+# Temp / generated files
+query
+package-lock_formatted.json
+skills-lock.json
+
+# Ruff Python cache
+.ruff_cache/
+
+# Agent skills (project-level)
+.agents/
+
+# Claude project config (auto-generated)
+.claude/
+

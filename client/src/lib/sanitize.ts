@@ -1,0 +1,45 @@
+import DOMPurify from "dompurify";
+
+export function sanitizeHtml(dirty: string): string {
+  if (!dirty) return dirty;
+  return DOMPurify.sanitize(dirty, {
+    ALLOWED_TAGS: [
+      "p",
+      "br",
+      "b",
+      "i",
+      "em",
+      "strong",
+      "a",
+      "ul",
+      "ol",
+      "li",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "code",
+      "pre",
+      "blockquote",
+      "hr",
+      "table",
+      "thead",
+      "tbody",
+      "tr",
+      "th",
+      "td",
+      "span",
+      "div",
+      "img",
+      "sub",
+      "sup",
+      "del",
+      "ins",
+      "mark",
+    ],
+    ALLOWED_ATTR: ["href", "target", "rel", "src", "alt", "class"],
+    ALLOW_DATA_ATTR: false,
+  });
+}
