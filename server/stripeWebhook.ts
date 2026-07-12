@@ -133,16 +133,22 @@ export function registerStripeWebhook(app: Express): void {
 
       // Verify signature
       try {
-        if (webhookSecret) {
-          const sig = req.headers["stripe-signature"] as string;
-          event = stripe.webhooks.constructEvent(
-            req.body as Buffer,
-            sig,
-            webhookSecret
+        if (!webhookSecret) {
+          console.error(
+            "[Stripe Webhook] STRIPE_WEBHOOK_SECRET not configured — refusing to process unsigned events"
           );
-        } else {
-          event = JSON.parse((req.body as Buffer).toString()) as Stripe.Event;
+          return res
+            .status(500)
+            .json({
+              error: "Webhook not configured: missing STRIPE_WEBHOOK_SECRET",
+            });
         }
+        const sig = req.headers["stripe-signature"] as string;
+        event = stripe.webhooks.constructEvent(
+          req.body as Buffer,
+          sig,
+          webhookSecret
+        );
       } catch (err) {
         console.error("[Stripe Webhook] Signature verification failed:", err);
         return res

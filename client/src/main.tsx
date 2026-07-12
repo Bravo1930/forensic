@@ -70,7 +70,17 @@ async function fetchWithAuth(
 
 // ─── Query / Mutation client ──────────────────────────────────────────────
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30 * 1000,
+      retry: 1,
+      retryDelay: attempt => Math.min(1000 * 2 ** attempt, 10000),
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    },
+  },
+});
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
@@ -86,12 +96,9 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
-    // Only redirect to login for UNAUTHORIZED errors, not for other errors
-    // Other errors should be handled by individual components
     if (error?.message === UNAUTHED_ERR_MSG) {
       redirectToLoginIfUnauthorized(error);
     }
-    console.error("[API Query Error]", error);
   }
 });
 
@@ -99,7 +106,6 @@ queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
     redirectToLoginIfUnauthorized(error);
-    console.error("[API Mutation Error]", error);
   }
 });
 

@@ -15,12 +15,25 @@ import {
   Plus,
   Scale,
   Shield,
+  Sparkles,
   TrendingUp,
   Users,
   Zap,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import OnboardingDialog from "@/components/OnboardingDialog";
 import { useLocation } from "wouter";
+import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import { Flip } from "gsap/Flip";
+import { gsap } from "gsap";
+
+gsap.registerPlugin(useGSAP, Flip);
 
 // ─── Tokens ──────────────────────────────────────────────────────────────────
 // All palette values live here. Zero hardcoded color strings outside this block.
@@ -87,6 +100,23 @@ function CapacityRing({
   const circ = 2 * Math.PI * r;
   const dash = (pct / 100) * circ;
   const color = danger && pct > 80 ? "#f43f5e" : "#6366f1";
+  const ringRef = useRef<SVGCircleElement>(null);
+
+  useGSAP(
+    () => {
+      if (!ringRef.current) return;
+      gsap.fromTo(
+        ringRef.current,
+        { strokeDasharray: `0 ${circ}` },
+        {
+          strokeDasharray: `${dash} ${circ}`,
+          duration: 1.2,
+          ease: "power2.out",
+        }
+      );
+    },
+    { dependencies: [pct] }
+  );
 
   return (
     <svg width="44" height="44" viewBox="0 0 44 44" className="shrink-0">
@@ -100,13 +130,13 @@ function CapacityRing({
         className="text-white/8"
       />
       <circle
+        ref={ringRef}
         cx="22"
         cy="22"
         r={r}
         fill="none"
         stroke={color}
         strokeWidth="3"
-        strokeDasharray={`${dash} ${circ}`}
         strokeLinecap="round"
         transform="rotate(-90 22 22)"
       />
@@ -119,13 +149,20 @@ function CapacityRing({
         fill="currentColor"
         className="text-white"
       >
-        {pct}avance actual
+        {pct}% usado
       </text>
     </svg>
   );
 }
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
+const TOOLTIPS: Record<string, string> = {
+  "Casos activos": "Expedientes forenses actualmente en curso",
+  "Análisis IA": "Análisis forenses realizados este período",
+  Almacenamiento: "Espacio utilizado en la nube forense",
+  Plan: "Plan de suscripción y límites actuales",
+};
+
 function StatCard({
   label,
   value,
@@ -144,23 +181,32 @@ function StatCard({
   return (
     <button
       onClick={onClick}
-      className="group relative flex flex-col gap-3 rounded-xl border border-white/8 bg-white/4 p-4 text-left
+      className="stat-card group relative flex flex-col gap-3 rounded-xl border border-white/8 bg-white/4 p-4 text-left
                  hover:border-white/16 hover:bg-white/7 active:scale-[0.98] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
     >
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
           {label}
         </span>
-        <span className={`rounded-lg p-1.5 ${accent ?? "bg-indigo-500/15"}`}>
-          <Icon
-            className={`w-3.5 h-3.5 ${accent ? "text-white/70" : "text-indigo-400"}`}
-          />
-        </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              className={`rounded-lg p-1.5 ${accent ?? "bg-indigo-500/15"}`}
+            >
+              <Icon
+                className={`w-3.5 h-3.5 ${accent ? "text-white/70" : "text-indigo-400"}`}
+              />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs max-w-44">
+            {TOOLTIPS[label] ?? label}
+          </TooltipContent>
+        </Tooltip>
       </div>
       <div className="text-2xl font-bold tracking-tight text-white">
         {value}
       </div>
-      {sub && <div className="text-[11px] text-white/35">{sub}</div>}
+      {sub && <div className="text-[11px] text-white/55">{sub}</div>}
       <ChevronRight className="absolute bottom-4 right-4 w-3.5 h-3.5 text-white/20 group-hover:text-white/50 transition-colors" />
     </button>
   );
@@ -191,8 +237,9 @@ function CaseRow({
       tabIndex={0}
       onClick={onClick}
       onKeyDown={e => e.key === "Enter" && onClick()}
-      className="group relative flex items-stretch gap-3 px-5 py-3.5 hover:bg-white/4 cursor-pointer
-                 transition-colors duration-100 border-b border-white/5 last:border-0 focus-visible:outline-none focus-visible:bg-white/4"
+      className="case-row group relative flex items-stretch gap-3 px-5 py-3.5 hover:bg-white/4 cursor-pointer
+                 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10
+                 border-b border-white/5 last:border-0 focus-visible:outline-none focus-visible:bg-white/4"
     >
       <PriorityStripe priority={c.priority} />
 
@@ -203,7 +250,7 @@ function CaseRow({
           </p>
           <div className="flex items-center gap-1.5 mt-0.5">
             <StatusDot status={c.status} />
-            <p className="text-xs text-white/35 truncate">
+            <p className="text-xs text-white/55 truncate">
               {c.caseNumber ? `Exp. ${c.caseNumber} · ` : ""}
               {c.caseType}
             </p>
@@ -221,7 +268,7 @@ function CaseRow({
           >
             {c.status}
           </span>
-          <span className="text-[10px] text-white/25 hidden sm:block">
+          <span className="text-[10px] text-white/55 hidden sm:block">
             {new Date(c.updatedAt as unknown as string).toLocaleDateString(
               "es-MX",
               { day: "2-digit", month: "short" }
@@ -246,8 +293,8 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-center justify-between mb-3">
-      <h2 className="text-[11px] font-semibold uppercase tracking-widest text-white/35">
-        {"pagina de prueba"}
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-white/55">
+        {title}
       </h2>
       {action && (
         <button
@@ -268,6 +315,7 @@ function CasesByTypeChart({
 }: {
   cases: { caseType: string; status: string }[];
 }) {
+  const chartRef = useRef<HTMLDivElement>(null);
   const typeLabels: Record<string, string> = {
     civil: "Civil",
     penal: "Penal",
@@ -299,8 +347,25 @@ function CasesByTypeChart({
     "#ec4899",
   ];
 
+  useGSAP(
+    () => {
+      gsap.set(".chart-bar", { height: 0 });
+      gsap.to(".chart-bar", {
+        height: (i: number, el: HTMLElement) =>
+          el.getAttribute("data-height") + "%",
+        duration: 1,
+        stagger: 0.08,
+        ease: "power3.out",
+      });
+    },
+    { scope: chartRef, dependencies: [cases] }
+  );
+
   return (
-    <div className="flex items-end justify-between gap-2 h-24 px-2">
+    <div
+      ref={chartRef}
+      className="flex items-end justify-between gap-2 h-24 px-2"
+    >
       {Object.entries(byType)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
@@ -309,9 +374,9 @@ function CasesByTypeChart({
           return (
             <div key={type} className="flex flex-col items-center gap-2 flex-1">
               <div
-                className="w-full rounded-t-md transition-all duration-300 hover:opacity-80"
+                className="chart-bar w-full rounded-t-md transition-all duration-300 hover:opacity-80"
+                data-height={height}
                 style={{
-                  height: `${height}%`,
                   backgroundColor: colors[i % colors.length],
                 }}
               />
@@ -412,6 +477,8 @@ export default function Dashboard() {
     )
     .slice(0, 6);
 
+  const dashboardRef = useRef<HTMLDivElement>(null);
+
   const storageGB = sub ? sub.storageUsedBytes / 1024 / 1024 / 1024 : 0;
   const storageLimGB = sub ? sub.storageLimitBytes / 1024 / 1024 / 1024 : 0;
   const storePct = sub
@@ -426,6 +493,29 @@ export default function Dashboard() {
     day: "numeric",
     month: "long",
   });
+
+  useGSAP(
+    () => {
+      gsap.from(".stat-card", {
+        y: 30,
+        autoAlpha: 0,
+        duration: 0.6,
+        stagger: 0.1,
+        ease: "power3.out",
+        clearProps: "transform",
+      });
+
+      gsap.from(".section-fade", {
+        y: 20,
+        autoAlpha: 0,
+        duration: 0.5,
+        stagger: 0.08,
+        ease: "power2.out",
+        delay: 0.3,
+      });
+    },
+    { scope: dashboardRef }
+  );
 
   if (casesLoading) {
     return (
@@ -470,16 +560,19 @@ export default function Dashboard() {
           }}
         />
 
-        <div className="relative mx-auto max-w-5xl px-4 py-8 space-y-8">
+        <div
+          ref={dashboardRef}
+          className="relative mx-auto max-w-5xl px-4 py-8 space-y-8"
+        >
           {/* ── Header ────────────────────────────────────────────────────────── */}
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/30 mb-1 capitalize">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55 mb-1 capitalize">
                 {today}
               </p>
               <h1 className="text-2xl font-bold tracking-tight">
                 {user?.name?.split(" ")[0] ?? "Perito"}
-                <span className="text-white/30">,</span>{" "}
+                <span className="text-white/55">,</span>{" "}
                 <span className="text-white/55 font-normal">
                   panel de control
                 </span>
@@ -487,7 +580,7 @@ export default function Dashboard() {
             </div>
             <Button
               onClick={() => navigate("/casos/nuevo")}
-              className="shrink-0 bg-indigo-600 hover:bg-indigo-500 border-0 text-white font-semibold gap-2 shadow-lg shadow-indigo-900/40"
+              className="shrink-0 bg-indigo-600 hover:bg-indigo-500 border-0 text-white font-semibold gap-2 shadow-lg shadow-indigo-900/40 btn-glow"
             >
               <Plus className="w-4 h-4" />
               Nuevo caso
@@ -498,7 +591,7 @@ export default function Dashboard() {
           {highPriority.length > 0 && (
             <button
               onClick={() => navigate("/casos?priority=alta")}
-              className="w-full flex items-center gap-3 rounded-xl border border-rose-500/25 bg-rose-500/8 px-5 py-3.5
+              className="section-fade w-full flex items-center gap-3 rounded-xl border border-rose-500/25 bg-rose-500/8 px-5 py-3.5
                          hover:bg-rose-500/12 transition-colors text-left group"
             >
               <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
@@ -511,7 +604,7 @@ export default function Dashboard() {
           )}
 
           {/* ── Stat cards ─────────────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="section-fade grid grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard
               label="Casos activos"
               value={casesLoading ? "—" : activeCases.length}
@@ -554,7 +647,7 @@ export default function Dashboard() {
           {/* ── Main grid ──────────────────────────────────────────────────── */}
           <div className="grid lg:grid-cols-3 gap-5">
             {/* Casos recientes — 2/3 width */}
-            <div className="lg:col-span-2 rounded-xl border border-white/8 bg-white/3 overflow-hidden">
+            <div className="section-fade lg:col-span-2 rounded-xl border border-white/8 bg-white/3 overflow-hidden">
               <div className="px-5 pt-5 pb-4 border-b border-white/6">
                 <SectionHeader
                   title="Casos recientes"
@@ -567,26 +660,31 @@ export default function Dashboard() {
                 <div className="flex items-center justify-center py-16">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-8 h-8 rounded-full border-2 border-indigo-500/40 border-t-indigo-400 animate-spin" />
-                    <p className="text-sm text-white/30">Cargando casos…</p>
+                    <p className="text-sm text-white/55">Cargando casos…</p>
                   </div>
                 </div>
               ) : recentCases.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
-                    <FolderOpen className="w-6 h-6 text-white/25" />
+                <div className="relative flex flex-col items-center justify-center py-16 gap-4 overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-[0.04] pointer-events-none">
+                    <Scale className="w-32 h-32" />
+                    <FolderOpen className="w-24 h-24 -ml-8 mt-16" />
+                    <FileSearch className="w-20 h-20 -ml-4 -mt-12" />
+                  </div>
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                    <FolderOpen className="w-7 h-7 text-indigo-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-white/50">
+                    <p className="text-sm font-medium text-white/70">
                       Sin casos aún
                     </p>
-                    <p className="text-xs text-white/25 mt-1">
+                    <p className="text-xs text-white/55 mt-1">
                       Crea tu primer expediente forense
                     </p>
                   </div>
                   <Button
                     size="sm"
                     onClick={() => navigate("/casos/nuevo")}
-                    className="bg-indigo-600 hover:bg-indigo-500 border-0 text-white gap-1.5"
+                    className="bg-indigo-600 hover:bg-indigo-500 border-0 text-white gap-1.5 shadow-lg shadow-indigo-900/40"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Crear caso
@@ -609,14 +707,14 @@ export default function Dashboard() {
             <div className="space-y-4">
               {/* Distribución de casos por tipo */}
               {cases.length > 0 && (
-                <div className="rounded-xl border border-white/8 bg-white/3 p-5">
+                <div className="section-fade rounded-xl border border-white/8 bg-white/3 p-5">
                   <SectionHeader title="Casos por tipo" />
                   <CasesByTypeChart cases={cases} />
                 </div>
               )}
 
               {/* Capacidad */}
-              <div className="rounded-xl border border-white/8 bg-white/3 p-5">
+              <div className="section-fade rounded-xl border border-white/8 bg-white/3 p-5">
                 <SectionHeader title="Capacidad" />
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
@@ -629,7 +727,7 @@ export default function Dashboard() {
                       <p className="text-xs font-semibold text-white/70">
                         Análisis IA
                       </p>
-                      <p className="text-[11px] text-white/35 mt-0.5">
+                      <p className="text-[11px] text-white/55 mt-0.5">
                         {sub?.analysesUsed ?? 0} / {sub?.analysesLimit ?? "—"}{" "}
                         este mes
                       </p>
@@ -645,7 +743,7 @@ export default function Dashboard() {
                       <p className="text-xs font-semibold text-white/70">
                         Almacenamiento
                       </p>
-                      <p className="text-[11px] text-white/35 mt-0.5">
+                      <p className="text-[11px] text-white/55 mt-0.5">
                         {storageGB.toFixed(1)} GB / {storageLimGB.toFixed(0)} GB
                       </p>
                     </div>
@@ -655,7 +753,7 @@ export default function Dashboard() {
 
               {/* Upgrade card — solo plan free */}
               {sub?.plan === "free" && (
-                <div className="rounded-xl border border-indigo-500/20 bg-indigo-600/8 p-5">
+                <div className="section-fade rounded-xl border border-indigo-500/20 bg-indigo-600/8 p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <Zap className="w-3.5 h-3.5 text-indigo-400" />
                     <span className="text-xs font-semibold text-indigo-300 uppercase tracking-widest">
@@ -680,7 +778,7 @@ export default function Dashboard() {
               )}
 
               {/* Sistema — compacto, solo info crítica */}
-              <div className="rounded-xl border border-white/8 bg-white/3 p-5">
+              <div className="section-fade rounded-xl border border-white/8 bg-white/3 p-5">
                 <SectionHeader title="Sistema" />
                 <div className="space-y-2.5">
                   {[
@@ -709,7 +807,7 @@ export default function Dashboard() {
                       </span>
                     </div>
                   ))}
-                  <div className="pt-1.5 flex items-center gap-1.5 text-[10px] text-white/20">
+                  <div className="pt-1.5 flex items-center gap-1.5 text-[10px] text-white/55">
                     <Clock className="w-3 h-3" />
                     Sincronizado ahora
                   </div>
@@ -719,6 +817,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      <OnboardingDialog hasCases={cases.length > 0} onNavigate={navigate} />
     </DashboardLayout>
   );
 }

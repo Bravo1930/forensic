@@ -1,0 +1,22 @@
+1:"$Sreact.fragment"
+2:I[5525,["66","static/chunks/66-f1e4348d2879381a.js","373","static/chunks/373-5064d372bb94d646.js","509","static/chunks/509-9599266f8a0027b3.js","177","static/chunks/app/layout-6f6fe0fa469b2aa9.js"],"ThemeProvider"]
+3:I[1534,["66","static/chunks/66-f1e4348d2879381a.js","373","static/chunks/373-5064d372bb94d646.js","509","static/chunks/509-9599266f8a0027b3.js","177","static/chunks/app/layout-6f6fe0fa469b2aa9.js"],"TRPCProvider",1]
+4:I[4827,[],""]
+5:I[1063,[],""]
+6:I[3310,["66","static/chunks/66-f1e4348d2879381a.js","373","static/chunks/373-5064d372bb94d646.js","509","static/chunks/509-9599266f8a0027b3.js","177","static/chunks/app/layout-6f6fe0fa469b2aa9.js"],"Toaster"]
+7:I[5686,[],"ClientPageRoot"]
+8:I[8699,["66","static/chunks/66-f1e4348d2879381a.js","898","static/chunks/898-dd3a73578fffcbfe.js","817","static/chunks/817-8f30376fd207b4ab.js","809","static/chunks/app/analisis/page-e4a11b14de6f3008.js"],"default",1]
+b:I[6050,[],"OutletBoundary"]
+d:I[9479,[],"AsyncMetadataOutlet"]
+f:I[6050,[],"ViewportBoundary"]
+11:I[6050,[],"MetadataBoundary"]
+12:"$Sreact.suspense"
+14:I[6177,[],""]
+:HL["/_next/static/css/9213eb6861fd1290.css","style"]
+0:{"P":null,"b":"b489OgBKgWsboAwP8-pGn","p":"","c":["","analisis"],"i":false,"f":[[["",{"children":["analisis",{"children":["__PAGE__",{}]}]},"$undefined","$undefined",true],["",["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/9213eb6861fd1290.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]],["$","html",null,{"lang":"es","suppressHydrationWarning":true,"children":["$","body",null,{"className":"bg-background text-foreground antialiased","children":["$","$L2",null,{"attribute":"class","defaultTheme":"dark","enableSystem":false,"children":["$","$L3",null,{"children":[["$","$L4",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L5",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[[["$","title",null,{"children":"404: This page could not be found."}],["$","div",null,{"style":{"fontFamily":"system-ui,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\"","height":"100vh","textAlign":"center","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"center"},"children":["$","div",null,{"children":[["$","style",null,{"dangerouslySetInnerHTML":{"__html":"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}"}}],["$","h1",null,{"className":"next-error-h1","style":{"display":"inline-block","margin":"0 20px 0 0","padding":"0 23px 0 0","fontSize":24,"fontWeight":500,"verticalAlign":"top","lineHeight":"49px"},"children":404}],["$","div",null,{"style":{"display":"inline-block"},"children":["$","h2",null,{"style":{"fontSize":14,"fontWeight":400,"lineHeight":"49px","margin":0},"children":"This page could not be found."}]}]]}]}]],[]],"forbidden":"$undefined","unauthorized":"$undefined"}],["$","$L6",null,{}]]}]}]}]}]]}],{"children":["analisis",["$","$1","c",{"children":[null,["$","$L4",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L5",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":["__PAGE__",["$","$1","c",{"children":[["$","$L7",null,{"Component":"$8","searchParams":{},"params":{},"promises":["$@9","$@a"]}],null,["$","$Lb",null,{"children":["$Lc",["$","$Ld",null,{"promise":"$@e"}]]}]]}],{},null,false]},null,false]},null,false],["$","$1","h",{"children":[null,[["$","$Lf",null,{"children":"$L10"}],null],["$","$L11",null,{"children":["$","div",null,{"hidden":true,"children":["$","$12",null,{"fallback":null,"children":"$L13"}]}]}]]}],false]],"m":"$undefined","G":["$14",[]],"s":false,"S":true}
+9:{}
+a:"$0:f:0:1:2:children:2:children:1:props:children:0:props:params"
+10:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]
+c:null
+e:{"metadata":[["$","title","0",{"children":"Forensic Legal Analyzer"}],["$","meta","1",{"name":"description","content":"Plataforma de análisis forense digital para procesos legales"}]],"error":null,"digest":"$undefined"}
+13:"$e:metadata"

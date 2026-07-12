@@ -67,7 +67,7 @@ export interface LegalArgument {
 }
 
 export interface PrecedentMatch {
-  tipo: "jurisprudencia" | "tesis" | "sentencia" | " criterios";
+  tipo: "jurisprudencia" | "tesis" | "sentencia" | "criterios";
   tribunal: string;
   materia: string;
   fecha: string;
@@ -167,7 +167,9 @@ Identifica:
 
 Evalúa la fuerza de cada argumento (fuerte/media/débil) y su base legal.`;
 
-const PRECEDENT_PROMPT = `Busca en el texto referencias a jurisprudencia, tesis, criterios o precedentes judiciales.
+const PRECEDENT_PROMPT = `IMPORTANTE: No inventes expedientes judiciales, tesis o jurisprudencias. Si no tienes certeza de un precedente real y verificable, responde exactamente: Precedente no verificable - requiere consulta en IUS o SCJN. Nunca fabriques números de expediente, fechas o tribunales.
+
+Busca en el texto referencias a jurisprudencia, tesis, criterios o precedentes judiciales.
 
 Para cada referencia identificada:
 - Tipo de precedente (jurisprudencia/tesis/sentencia/criterio)

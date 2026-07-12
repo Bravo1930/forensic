@@ -26,6 +26,7 @@ const DEMO_ANALYSES = [
     id: 1,
     userId: DEMO_USER_ID,
     caseId: 1,
+    type: "forense" as const,
     title: "Análisis de demanda laboral",
     status: "completado" as const,
     executiveSummary:
@@ -66,6 +67,7 @@ const DEMO_ANALYSES = [
     id: 2,
     userId: DEMO_USER_ID,
     caseId: 2,
+    type: "forense" as const,
     title: "Revisión de contrato de arrendamiento",
     status: "completado" as const,
     executiveSummary: "El contrato contiene cláusulas potencialmente abusivas.",
@@ -128,13 +130,13 @@ export const analysesRouter = router({
   }),
 
   listByCase: protectedProcedure
-    .input(z.object({ caseId: z.number() }))
+    .input(z.object({ caseId: z.coerce.number().positive() }))
     .query(async ({ ctx, input }) => {
       return getAnalysesByCase(input.caseId, ctx.user.id);
     }),
 
   getById: protectedProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.coerce.number().positive() }))
     .query(async ({ ctx, input }) => {
       const analysis = await getAnalysisById(input.id, ctx.user.id);
       if (!analysis) throw new TRPCError({ code: "NOT_FOUND" });
@@ -144,7 +146,7 @@ export const analysesRouter = router({
   run: protectedProcedure
     .input(
       z.object({
-        caseId: z.number(),
+        caseId: z.coerce.number().positive(),
         type: z.string().optional(),
         title: z.string().min(1).max(255).optional(),
         forceFresh: z.boolean().optional(),
@@ -157,7 +159,7 @@ export const analysesRouter = router({
           "access_denied",
           {
             ip: ctx.req?.ip,
-            user: { id: ctx.user.id, email: ctx.user.email ?? undefined },
+            user: { id: ctx.user.id },
           },
           {
             action: "Attempted to run analysis on non-owned case",
@@ -176,7 +178,7 @@ export const analysesRouter = router({
         "analysis_run",
         {
           ip: ctx.req?.ip,
-          user: { id: ctx.user.id, email: ctx.user.email ?? undefined },
+          user: { id: ctx.user.id },
         },
         {
           action: "Started forensic analysis",
@@ -262,7 +264,7 @@ export const analysesRouter = router({
   runContradiction: protectedProcedure
     .input(
       z.object({
-        caseId: z.number(),
+        caseId: z.coerce.number().positive(),
         title: z.string().min(1).max(255).optional(),
         forceFresh: z.boolean().optional(),
       })
@@ -351,7 +353,7 @@ export const analysesRouter = router({
     }),
 
   getStatus: protectedProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.coerce.number().positive() }))
     .query(async ({ ctx, input }) => {
       const analysis = await getAnalysisById(input.id, ctx.user.id);
       if (!analysis) throw new TRPCError({ code: "NOT_FOUND" });

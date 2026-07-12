@@ -61,19 +61,27 @@ function buildPdfHtml(
   }>,
   userName: string
 ): string {
-  const keyFindings =
-    (analysis.keyFindings as Array<{
-      title: string;
-      description: string;
-      severity: string;
-    }>) ?? [];
-  const timelineEvents =
-    (analysis.timelineEvents as Array<{
-      date: string;
-      title: string;
-      description: string;
-      significance: string;
-    }>) ?? [];
+  const keyFindings: Array<{
+    title: string;
+    description: string;
+    severity: string;
+  }> =
+    typeof analysis.keyFindings === "string"
+      ? JSON.parse(analysis.keyFindings || "[]")
+      : Array.isArray(analysis.keyFindings)
+        ? analysis.keyFindings
+        : [];
+  const timelineEvents: Array<{
+    date: string;
+    title: string;
+    description: string;
+    significance: string;
+  }> =
+    typeof analysis.timelineEvents === "string"
+      ? JSON.parse(analysis.timelineEvents || "[]")
+      : Array.isArray(analysis.timelineEvents)
+        ? analysis.timelineEvents
+        : [];
 
   const findingsHtml = keyFindings
     .map(
@@ -300,13 +308,17 @@ function buildContradictionPdfHtml(
   }>,
   userName: string
 ): string {
-  const keyFindings =
-    (analysis.keyFindings as Array<{
-      title: string;
-      description: string;
-      severity: string;
-      documentRefs: string[];
-    }>) ?? [];
+  const keyFindings: Array<{
+    title: string;
+    description: string;
+    severity: string;
+    documentRefs: string[];
+  }> =
+    typeof analysis.keyFindings === "string"
+      ? JSON.parse(analysis.keyFindings || "[]")
+      : Array.isArray(analysis.keyFindings)
+        ? analysis.keyFindings
+        : [];
 
   const criticalFindings = keyFindings.filter(f => f.severity === "alta");
   const mediumFindings = keyFindings.filter(f => f.severity === "media");

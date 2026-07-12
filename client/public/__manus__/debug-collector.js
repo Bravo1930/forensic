@@ -26,7 +26,7 @@
       // semantic, agent-friendly UI events
       ui: 500,
     },
-    reportInterval: 2000,
+    reportInterval: 10000,
     sensitiveFields: [
       "password",
       "token",

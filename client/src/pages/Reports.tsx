@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import {
+  AlertTriangle,
   CheckCircle2,
   Download,
   FileText,
   Loader2,
+  RefreshCw,
   XCircle,
 } from "lucide-react";
 
@@ -32,8 +34,34 @@ const statusConfig: Record<
   },
 };
 
+function ReportSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Card key={i} className="bg-card border-border">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-muted rounded-lg animate-pulse shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+                <div className="h-3 w-36 bg-muted rounded animate-pulse" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 export default function Reports() {
-  const { data: cases = [] } = trpc.cases.list.useQuery();
+  const {
+    data: cases = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = trpc.cases.list.useQuery();
 
   return (
     <DashboardLayout>
@@ -45,7 +73,25 @@ export default function Reports() {
           </p>
         </div>
 
-        {cases.length === 0 ? (
+        {isLoading ? (
+          <ReportSkeleton />
+        ) : isError ? (
+          <Card className="bg-card border-destructive/30">
+            <CardContent className="py-12 text-center">
+              <AlertTriangle className="w-10 h-10 text-destructive mx-auto mb-3" />
+              <p className="text-destructive font-medium mb-1">
+                Error al cargar reportes
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                {error?.message ?? "Intenta de nuevo más tarde"}
+              </p>
+              <Button variant="outline" onClick={() => refetch()}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Reintentar
+              </Button>
+            </CardContent>
+          </Card>
+        ) : cases.length === 0 ? (
           <Card className="bg-card border-border">
             <CardContent className="py-16 text-center">
               <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
@@ -77,10 +123,62 @@ function CaseReports({
   caseId: number;
   caseTitle: string;
 }) {
-  const { data: reportsList = [], isLoading } =
-    trpc.reports.listByCase.useQuery({ caseId });
+  const {
+    data: reportsList = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = trpc.reports.listByCase.useQuery({ caseId });
 
-  if (isLoading || reportsList.length === 0) return null;
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <div className="h-4 w-32 bg-muted rounded animate-pulse mb-2" />
+        <div className="space-y-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Card key={i} className="bg-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-muted rounded-lg animate-pulse shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-40 bg-muted rounded animate-pulse" />
+                    <div className="h-3 w-32 bg-muted rounded animate-pulse" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+          <FileText className="w-4 h-4" />
+          {caseTitle}
+        </h3>
+        <Card className="bg-card border-destructive/30">
+          <CardContent className="py-4 text-center">
+            <p className="text-sm text-destructive mb-2">
+              Error al cargar reportes
+            </p>
+            <p className="text-xs text-muted-foreground mb-3">
+              {error?.message ?? ""}
+            </p>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="w-3 h-3 mr-1" /> Reintentar
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (reportsList.length === 0) return null;
 
   return (
     <div>

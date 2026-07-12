@@ -42,41 +42,41 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* ─── Forensic Dark Theme (Negro + Rojo) ─── */
+/* ─── Premium Gold Dark Theme ─── */
 :root {
   --radius: 0.5rem;
-  --background: oklch(0.08 0 0);
-  --foreground: oklch(0.93 0 0);
-  --card: oklch(0.11 0 0);
-  --card-foreground: oklch(0.93 0 0);
-  --popover: oklch(0.13 0 0);
-  --popover-foreground: oklch(0.93 0 0);
-  --primary: oklch(0.5 0.2 27);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.15 0 0);
-  --secondary-foreground: oklch(0.85 0 0);
-  --muted: oklch(0.16 0 0);
-  --muted-foreground: oklch(0.55 0 0);
-  --accent: oklch(0.5 0.2 27);
-  --accent-foreground: oklch(0.98 0 0);
-  --destructive: oklch(0.55 0.22 27);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.2 0 0);
-  --input: oklch(0.16 0 0);
-  --ring: oklch(0.5 0.2 27);
-  --chart-1: oklch(0.5 0.2 27);
-  --chart-2: oklch(0.6 0.15 200);
-  --chart-3: oklch(0.65 0.18 140);
-  --chart-4: oklch(0.7 0.15 60);
-  --chart-5: oklch(0.55 0.18 280);
-  --sidebar: oklch(0.09 0 0);
-  --sidebar-foreground: oklch(0.85 0 0);
-  --sidebar-primary: oklch(0.5 0.2 27);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.14 0 0);
-  --sidebar-accent-foreground: oklch(0.85 0 0);
-  --sidebar-border: oklch(0.18 0 0);
-  --sidebar-ring: oklch(0.5 0.2 27);
+  --background: #12151e;
+  --foreground: #f1f5f9;
+  --card: #1a1d27;
+  --card-foreground: #f1f5f9;
+  --popover: #1a1d27;
+  --popover-foreground: #f1f5f9;
+  --primary: #e8b86d;
+  --primary-foreground: #12151e;
+  --secondary: #1a1d27;
+  --secondary-foreground: #f1f5f9;
+  --muted: #1a1d27;
+  --muted-foreground: #8892a0;
+  --accent: #e8b86d;
+  --accent-foreground: #12151e;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+  --border: #2a2e3a;
+  --input: #2a2e3a;
+  --ring: #e8b86d;
+  --chart-1: #e8b86d;
+  --chart-2: #f0d48a;
+  --chart-3: #c99a4e;
+  --chart-4: #8892a0;
+  --chart-5: #f1f5f9;
+  --sidebar: #0f1219;
+  --sidebar-foreground: #f1f5f9;
+  --sidebar-primary: #e8b86d;
+  --sidebar-primary-foreground: #12151e;
+  --sidebar-accent: rgba(232, 184, 109, 0.1);
+  --sidebar-accent-foreground: #e8b86d;
+  --sidebar-border: #2a2e3a;
+  --sidebar-ring: #e8b86d;
 }
 
 @layer base {
@@ -136,33 +136,30 @@
   }
 }
 
-/* ─── Forensic Custom Styles ─── */
-/* --- Forensic Custom Styles (Refinado Premium) --- */
+/* ─── Premium Glassmorphism ─── */
+.card-glass {
+  background: rgba(26, 29, 39, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.15, 1, 0.3, 1);
+  border: 1px solid rgba(232, 184, 109, 0.1);
+}
+
+.card-glass-strong {
+  background: rgba(26, 29, 39, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(232, 184, 109, 0.15);
+}
 
 /* Brillo sutil para elementos destacados */
-.glow-red {
-  box-shadow: 0 0 25px oklch(0.5 0.2 27 / 0.15);
-  border: 1px solid oklch(0.5 0.2 27 / 0.4);
-}
-
-/* Tarjetas de evidencia con profundidad y suavidad */
-.evidence-card {
-  transition: all 0.4s cubic-bezier(0.15, 1, 0.3, 1);
-  background: #ffffff;
-  border: 1px solid oklch(0.2 0 0 / 0.05);
-  border-radius: 14px;
-  padding: 1.5rem;
+.glow-gold {
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.02),
-    0 1px 1px rgba(0, 0, 0, 0.01);
-}
-
-.evidence-card:hover {
-  transform: translateY(-5px);
-  border-color: oklch(0.5 0.2 27 / 0.4);
-  box-shadow:
-    0 20px 25px -5px oklch(0.5 0.2 27 / 0.08),
-    0 10px 10px -6px oklch(0.5 0.2 27 / 0.04);
+    0 0 30px rgba(232, 184, 109, 0.2),
+    0 0 60px rgba(232, 184, 109, 0.08);
+  border: 1px solid rgba(232, 184, 109, 0.4);
 }
 
 /* Indicadores de severidad con estilo de "Píldora" profesional */
@@ -178,14 +175,15 @@
 }
 
 .severity-alta {
-  background: oklch(0.5 0.2 27 / 0.1);
-  color: oklch(0.5 0.2 27);
-  border-color: oklch(0.5 0.2 27 / 0.2);
+  background: rgba(232, 184, 109, 0.1);
+  color: #e8b86d;
+  border-color: rgba(232, 184, 109, 0.2);
 }
 
-/* Scrollbar minimalista para no ensuciar el diseño */
+/* ─── Scrollbar minimalista ─── */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -193,86 +191,146 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.25 0 0 / 0.1);
+  background: rgba(136, 146, 160, 0.15);
   border-radius: 10px;
   transition: background 0.3s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.5 0.2 27 / 0.6);
-}
-/* --- OVERRIDE PREMIUM PARA LANDING --- */
-
-/* 1. Fondo con profundidad profesional */
-body {
-  background: radial-gradient(
-    circle at top center,
-    #111111 0%,
-    #000000 100%
-  ) !important;
+  background: rgba(232, 184, 109, 0.5);
 }
 
-/* 2. El título "Convertida en Argumentos Legales" */
-h1 {
-  background: linear-gradient(180deg, #ffffff 0%, #a1a1a1 100%);
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(136, 146, 160, 0.15) transparent;
+}
+/* ─── Landing Page (scoped under .home-page) ─── */
+.home-page {
+  background: radial-gradient(circle at top center, #12151e 0%, #0f1219 100%);
+}
+
+.home-page h1 {
+  background: linear-gradient(180deg, #f1f5f9 0%, #e8b86d 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  font-weight: 800 !important;
-  letter-spacing: -0.03em !important;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-shadow: 0 0 20px rgba(232, 184, 109, 0.15);
+  filter: drop-shadow(0 0 10px rgba(232, 184, 109, 0.05));
 }
 
-/* 3. Los 4 cuadros de abajo (Stats/Features) */
-/* Este selector es más agresivo para atrapar esos cuadros */
-div.grid > div {
-  background: rgba(255, 255, 255, 0.03) !important;
-  backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 16px !important;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+.home-page div.grid > div {
+  background: rgba(26, 29, 39, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(232, 184, 109, 0.15);
+  border-radius: 16px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-div.grid > div:hover {
-  border-color: oklch(0.5 0.2 27 / 0.5) !important;
-  background: rgba(255, 255, 255, 0.05) !important;
+.home-page div.grid > div:hover {
+  border-color: rgba(232, 184, 109, 0.5);
+  background: rgba(26, 29, 39, 0.85);
   transform: translateY(-5px);
 }
 
-/* 4. Botón principal carmesí */
-button.bg-red-600,
-.bg-red-600 {
-  background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  box-shadow: 0 10px 20px -10px oklch(0.5 0.2 27 / 0.5) !important;
-}
-h1 {
-  /* ... tus estilos anteriores ... */
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.15); /* Un brillo muy suave */
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.05));
-}
-/* Busca la clase de ese pequeño banner rojo */
-.tag-forense {
-  background: rgba(225, 29, 72, 0.1) !important; /* Fondo translúcido */
-  border: 1px solid rgba(225, 29, 72, 0.4) !important; /* Borde rojo brillante */
-  backdrop-filter: blur(4px);
-  color: #fb7185 !important; /* Un rojo más vibrante para el texto */
-  padding: 6px 16px !important;
-  border-radius: 100px !important;
-  font-weight: 500;
-  text-transform: uppercase;
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-}
-/* Botón "Ver demostración" */
-button.ghost {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: #e5e5e5 !important;
-  backdrop-filter: blur(8px);
-  transition: all 0.3s ease;
+.home-page .bg-primary {
+  background: linear-gradient(135deg, #e8b86d 0%, #c99a4e 100%);
+  border: 1px solid rgba(232, 184, 109, 0.3);
+  box-shadow: 0 10px 20px -10px rgba(232, 184, 109, 0.5);
+  color: #12151e;
 }
 
-button.ghost:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.3) !important;
-  color: #ffffff !important;
+/* ─── Shimmer skeleton ─── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+[data-slot="skeleton"] {
+  position: relative;
+  overflow: hidden;
+}
+
+[data-slot="skeleton"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.07) 50%,
+    transparent 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ─── Button micro-interactions ─── */
+.btn-glow {
+  transition: all 0.2s ease;
+}
+.btn-glow:hover {
+  box-shadow: 0 0 20px rgba(232, 184, 109, 0.25);
+  transform: translateY(-1px);
+}
+.btn-glow:active {
+  transform: scale(0.97);
+}
+
+/* ─── Page enter animation ─── */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-enter 0.35s ease-out;
+}
+
+/* ─── Sidebar resize handle ─── */
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 50;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  width: 3px;
+  height: 32px;
+  background: rgba(232, 184, 109, 0.15);
+  border-radius: 2px;
+  transform: translateY(-50%);
+  transition: all 0.2s ease;
+}
+
+.sidebar-resize-handle:hover::after,
+.sidebar-resize-handle:active::after {
+  background: rgba(232, 184, 109, 0.5);
+  height: 48px;
+  box-shadow: 0 0 8px rgba(232, 184, 109, 0.2);
+}
+
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle:active {
+  background: rgba(232, 184, 109, 0.08);
 }

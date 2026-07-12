@@ -7,6 +7,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import {
   AlertTriangle,
   Archive,
   ArrowLeft,
@@ -250,18 +262,36 @@ function EvidenceList({
                   <Download className="w-3.5 h-3.5" />
                 </Button>
               </a>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 hover:text-destructive"
-                onClick={ev => {
-                  ev.stopPropagation();
-                  if (confirm("¿Eliminar esta evidencia?"))
-                    deleteEvidence.mutate({ id: e.id });
-                }}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 hover:text-destructive"
+                    onClick={ev => ev.stopPropagation()}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent onClick={ev => ev.stopPropagation()}>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Eliminar evidencia</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      ¿Eliminar esta evidencia? Esta acción no se puede
+                      deshacer.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive hover:bg-destructive/90"
+                      onClick={() => deleteEvidence.mutate({ id: e.id })}
+                    >
+                      Eliminar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
           {/* Image analysis panel - expandable */}
@@ -289,7 +319,10 @@ function AnalysisList({ caseId }: { caseId: number }) {
     data: analysesList = [],
     isLoading,
     refetch,
-  } = trpc.analyses.listByCase.useQuery({ caseId });
+  } = trpc.analyses.listByCase.useQuery(
+    { caseId },
+    { staleTime: 30 * 1000, retry: 1, refetchOnWindowFocus: false }
+  );
   const utils = trpc.useUtils();
 
   const runAnalysis = trpc.analyses.run.useMutation({
@@ -583,6 +616,13 @@ export default function CaseDetail() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <Breadcrumbs
+          segments={[
+            { label: "Casos", href: "/casos", icon: FolderOpen },
+            { label: caseData.title },
+          ]}
+          onNavigate={navigate}
+        />
         {/* Header */}
         <div className="flex items-start gap-4">
           <Button

@@ -13,7 +13,8 @@ export const users = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     openId: text("openId").notNull().unique(),
     name: text("name"),
-    email: text("email"),
+    email: text("email").unique(),
+    passwordHash: text("passwordHash"),
     loginMethod: text("loginMethod"),
     role: text("role").notNull().default("user"),
     createdAt: integer("createdAt", { mode: "timestamp" })
@@ -52,7 +53,7 @@ export const subscriptions = sqliteTable(
       .default(false),
     analysesUsed: integer("analysesUsed").notNull().default(0),
     analysesLimit: integer("analysesLimit").notNull().default(3),
-    casesLimit: integer("casesLimit").notNull().default(5),
+    casesLimit: integer("casesLimit").notNull().default(3),
     storageUsedBytes: integer("storageUsedBytes").notNull().default(0),
     storageLimitBytes: integer("storageLimitBytes")
       .notNull()

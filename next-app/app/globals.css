@@ -1,0 +1,60 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-accent: #e8b86d;
+  --color-gold: #e8b86d;
+  --color-gold-light: #f0d48a;
+  --color-gold-dark: #c99a4e;
+  --color-background: #12151e;
+  --color-surface: #1a1d27;
+}
+
+:root {
+  --background: #12151e;
+  --foreground: #e8edf2;
+  --card: #1a1d27;
+  --card-foreground: #e8edf2;
+  --popover: #1a1d27;
+  --popover-foreground: #e8edf2;
+  --primary: #e8b86d;
+  --primary-foreground: #12151e;
+  --secondary: #1a1d27;
+  --secondary-foreground: #e8edf2;
+  --muted: #1a1d27;
+  --muted-foreground: #8892a0;
+  --accent: #e8b86d;
+  --accent-foreground: #12151e;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+  --border: #2a2e3a;
+  --input: #2a2e3a;
+  --ring: #e8b86d;
+  --radius: 0.5rem;
+  --sidebar-background: #0f1219;
+  --sidebar-foreground: #e8edf2;
+  --sidebar-primary: #e8b86d;
+  --sidebar-primary-foreground: #12151e;
+  --sidebar-accent: rgba(232, 184, 109, 0.1);
+  --sidebar-accent-foreground: #e8b86d;
+  --sidebar-border: #2a2e3a;
+  --sidebar-ring: #e8b86d;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.hero-heading {
+  background: linear-gradient(180deg, #646973 0%, #bbccd7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

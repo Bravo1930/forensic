@@ -21,20 +21,36 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  AlertTriangle,
   Archive,
   Calendar,
   ChevronRight,
   FolderOpen,
   Plus,
+  RefreshCw,
   Search,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { List } from "react-window";
+import { useGSAP } from "@gsap/react";
+import { Flip } from "gsap/Flip";
+import { gsap } from "gsap";
 
-const ROW_HEIGHT = 88;
+gsap.registerPlugin(useGSAP, Flip);
 
 const caseTypeLabels: Record<string, string> = {
   civil: "Civil",
@@ -253,123 +269,20 @@ function CreateCaseDialog({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-interface CaseRowProps {
-  cases: any[];
-  navigate: (path: string) => void;
-  archiveCase: { mutate: (data: any) => void; isPending: boolean };
-  deleteCase: { mutate: (id: number) => void; isPending: boolean };
-  statusConfig: Record<string, { label: string; className: string }>;
-  priorityConfig: Record<string, { label: string; className: string }>;
-  caseTypeLabels: Record<string, string>;
-}
-
-function CaseRow({
-  index,
-  style,
-  cases,
-  navigate,
-  archiveCase,
-  deleteCase,
-  statusConfig,
-  priorityConfig,
-  caseTypeLabels,
-}: {
-  index: number;
-  style: React.CSSProperties;
-} & CaseRowProps) {
-  const c = cases[index];
-
-  return (
-    <div style={style}>
-      <Card
-        className="bg-card border-border hover:border-primary/30 transition-all cursor-pointer"
-        onClick={() => navigate(`/casos/${c.id}`)}
-      >
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-              <FolderOpen className="w-5 h-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold truncate">{c.title}</h3>
-                {c.caseNumber && (
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    #{c.caseNumber}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                <span>{caseTypeLabels[c.caseType]}</span>
-                {c.clientName && <span>· {c.clientName}</span>}
-                {c.court && <span>· {c.court}</span>}
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  {new Date(c.updatedAt).toLocaleDateString("es-MX")}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Badge
-                variant="outline"
-                className={`text-[10px] px-2 py-0 h-5 ${statusConfig[c.status]?.className}`}
-              >
-                {statusConfig[c.status]?.label}
-              </Badge>
-              <Badge
-                variant="outline"
-                className={`text-[10px] px-2 py-0 h-5 ${priorityConfig[c.priority]?.className}`}
-              >
-                {priorityConfig[c.priority]?.label}
-              </Badge>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {c.status === "activo" && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0 hover:text-yellow-400"
-                    onClick={e => {
-                      e.stopPropagation();
-                      archiveCase.mutate({
-                        id: c.id,
-                        status: "archivado" as const,
-                      });
-                    }}
-                  >
-                    <Archive className="w-3.5 h-3.5" />
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 hover:text-destructive"
-                  onClick={e => {
-                    e.stopPropagation();
-                    if (confirm("¿Eliminar este caso y toda su evidencia?")) {
-                      deleteCase.mutate(c.id);
-                    }
-                  }}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 export default function Cases() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
-  const listRef = useRef<HTMLDivElement>(null);
-  const [listHeight, setListHeight] = useState(400);
+  const casesRef = useRef<HTMLDivElement>(null);
+  const flipRef = useRef<any>(null);
 
-  const { data: cases = [], isLoading } = trpc.cases.list.useQuery();
+  const {
+    data: cases = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = trpc.cases.list.useQuery();
 
   const deleteCaseMutation = trpc.cases.delete.useMutation({
     onSuccess: () => {
@@ -404,26 +317,39 @@ export default function Cases() {
     return matchSearch && matchStatus;
   });
 
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(entries => {
-      const { height } = entries[0].contentRect;
-      if (height > 0) setListHeight(height);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const itemData = {
-    cases: filtered,
-    navigate,
-    archiveCase,
-    deleteCase,
-    statusConfig,
-    priorityConfig,
-    caseTypeLabels,
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    flipRef.current = Flip.getState(".case-card");
+    setSearch(e.target.value);
   };
+
+  const handleStatusChange = (value: string) => {
+    flipRef.current = Flip.getState(".case-card");
+    setStatusFilter(value);
+  };
+
+  useLayoutEffect(() => {
+    if (!flipRef.current) return;
+    Flip.from(flipRef.current, {
+      duration: 0.5,
+      ease: "power2.inOut",
+    });
+    flipRef.current = null;
+  }, [filtered]);
+
+  useGSAP(
+    () => {
+      if (isLoading) return;
+      gsap.from(".case-card", {
+        y: 20,
+        autoAlpha: 0,
+        duration: 0.4,
+        stagger: { amount: 0.3, from: "start" },
+        ease: "power2.out",
+        clearProps: "transform",
+      });
+    },
+    { dependencies: [isLoading], scope: casesRef }
+  );
 
   return (
     <DashboardLayout>
@@ -447,11 +373,11 @@ export default function Cases() {
             <Input
               placeholder="Buscar por título, expediente o cliente..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={handleSearchChange}
               className="pl-9 bg-card border-border"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-40 bg-card border-border">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
@@ -465,11 +391,42 @@ export default function Cases() {
           </Select>
         </div>
 
-        {/* Virtualized list */}
+        {/* Case list */}
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">
-            Cargando casos...
+          <div className="flex-1 min-h-0 space-y-3 py-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card"
+              >
+                <Skeleton className="w-10 h-10 rounded-lg shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+                <div className="flex gap-2">
+                  <Skeleton className="w-16 h-5 rounded-full" />
+                  <Skeleton className="w-12 h-5 rounded-full" />
+                </div>
+              </div>
+            ))}
           </div>
+        ) : isError ? (
+          <Card className="bg-card border-destructive/30">
+            <CardContent className="py-12 text-center">
+              <AlertTriangle className="w-10 h-10 text-destructive mx-auto mb-3" />
+              <p className="text-destructive font-medium mb-1">
+                Error al cargar casos
+              </p>
+              <p className="text-xs text-muted-foreground mb-4">
+                {error?.message}
+              </p>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                <RefreshCw className="w-3.5 h-3.5 mr-2" />
+                Reintentar
+              </Button>
+            </CardContent>
+          </Card>
         ) : filtered.length === 0 ? (
           <Card className="bg-card border-border">
             <CardContent className="py-16 text-center">
@@ -485,14 +442,112 @@ export default function Cases() {
             </CardContent>
           </Card>
         ) : (
-          <div ref={listRef} className="flex-1 min-h-0">
-            <List<CaseRowProps>
-              style={{ height: listHeight, width: "100%" }}
-              rowCount={filtered.length}
-              rowHeight={ROW_HEIGHT}
-              rowProps={itemData}
-              rowComponent={CaseRow}
-            />
+          <div
+            ref={casesRef}
+            className="flex-1 min-h-0 overflow-y-auto space-y-2"
+          >
+            {filtered.map(c => (
+              <div key={c.id} className="case-card">
+                <Card
+                  className="bg-card border-border hover:border-primary/30 transition-all cursor-pointer will-change-transform"
+                  onClick={() => navigate(`/casos/${c.id}`)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                        <FolderOpen className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold truncate">{c.title}</h3>
+                          {c.caseNumber && (
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              #{c.caseNumber}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                          <span>{caseTypeLabels[c.caseType]}</span>
+                          {c.clientName && <span>· {c.clientName}</span>}
+                          {c.court && <span>· {c.court}</span>}
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(c.updatedAt).toLocaleDateString("es-MX")}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] px-2 py-0 h-5 ${statusConfig[c.status]?.className}`}
+                        >
+                          {statusConfig[c.status]?.label}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] px-2 py-0 h-5 ${priorityConfig[c.priority]?.className}`}
+                        >
+                          {priorityConfig[c.priority]?.label}
+                        </Badge>
+                        <div className="flex items-center gap-1">
+                          {c.status === "activo" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:text-yellow-400"
+                              onClick={e => {
+                                e.stopPropagation();
+                                archiveCase.mutate({
+                                  id: c.id,
+                                  status: "archivado" as const,
+                                });
+                              }}
+                            >
+                              <Archive className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 hover:text-destructive"
+                                onClick={e => e.stopPropagation()}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent
+                              onClick={e => e.stopPropagation()}
+                            >
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Eliminar caso
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  ¿Eliminar este caso y toda su evidencia? Esta
+                                  acción no se puede deshacer.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive hover:bg-destructive/90"
+                                  onClick={() => deleteCase.mutate(c.id)}
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
           </div>
         )}
       </div>

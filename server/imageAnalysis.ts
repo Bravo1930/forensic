@@ -431,10 +431,301 @@ Analiza exhaustivamente y devuelve el resultado en JSON con la estructura exacta
   const content = typeof rawContent === "string" ? rawContent : null;
   if (!content) throw new Error("No se recibió respuesta del modelo de visión");
 
-  return JSON.parse(content) as ImageForensicAnalysis;
+  try {
+    return JSON.parse(content) as ImageForensicAnalysis;
+  } catch {
+    throw new Error("Error al analizar la respuesta del modelo de visión");
+  }
 }
 
 // ─── Combined analysis entry point ───────────────────────────────────────────
+
+async function analyzeImageComprehensive(
+  imageUrl: string,
+  base64Data: string,
+  filename: string,
+  mimeType: string,
+  caseContext?: string
+): Promise<{ exif: ExifMetadata; vision: ImageForensicAnalysis }> {
+  const systemPrompt = `Eres un perito forense digital especializado en análisis de imágenes para procesos judiciales.
+
+Debes realizar DOS análisis en paralelo sobre la misma imagen:
+
+ANÁLISIS 1 - EXIF/Metadatos:
+Extrae todos los metadatos EXIF visibles o inferibles: dispositivo capturador, fechas, coordenadas GPS, dimensiones, software de edición, y cualquier indicador de manipulación en metadatos.
+
+ANÁLISIS 2 - Forense completo:
+1. OCR: extrae todo el texto visible
+2. Detección de objetos: personas, documentos, dispositivos, ubicaciones
+3. Análisis de manipulación: ediciones, filtros, recortes, superposiciones
+4. Indicadores forenses: marcas de agua, metadatos inconsistentes, artefactos
+5. Claves de ubicación: señales, carteles, arquitectura, vegetación, clima
+6. Claves temporales: relojes, fechas visibles, condiciones de luz, sombras
+7. Relevancia legal: valor probatorio de la imagen`;
+
+  const userPrompt = `Realiza un análisis forense completo y extracción EXIF de esta imagen.
+
+Nombre del archivo: ${filename}
+Tipo MIME: ${mimeType}
+${caseContext ? `Contexto del caso: ${caseContext}` : ""}
+
+Devuelve un JSON con dos objetos: "exif" (todos los metadatos) y "forensic" (análisis forense completo con la estructura exacta solicitada). Sé específico y técnico.`;
+
+  const response = await invokeLLM({
+    messages: [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image_url: { url: imageUrl, detail: "high" },
+          },
+          {
+            type: "text",
+            text: userPrompt,
+          },
+        ],
+      },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "comprehensive_analysis",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            exif: {
+              type: "object",
+              properties: {
+                make: { type: "string" },
+                model: { type: "string" },
+                software: { type: "string" },
+                dateTimeOriginal: { type: "string" },
+                dateTimeDigitized: { type: "string" },
+                dateTime: { type: "string" },
+                gpsLatitude: { type: "number" },
+                gpsLongitude: { type: "number" },
+                gpsAltitude: { type: "number" },
+                gpsLatitudeRef: { type: "string" },
+                gpsLongitudeRef: { type: "string" },
+                gpsTimestamp: { type: "string" },
+                gpsDateStamp: { type: "string" },
+                imageWidth: { type: "number" },
+                imageHeight: { type: "number" },
+                orientation: { type: "number" },
+                colorSpace: { type: "string" },
+                exposureTime: { type: "string" },
+                fNumber: { type: "number" },
+                iso: { type: "number" },
+                focalLength: { type: "string" },
+                flash: { type: "string" },
+                artist: { type: "string" },
+                copyright: { type: "string" },
+                imageDescription: { type: "string" },
+                xmpToolkit: { type: "string" },
+                photoshopDocumentID: { type: "string" },
+                historyAction: { type: "string" },
+              },
+              additionalProperties: true,
+            },
+            forensic: {
+              type: "object",
+              properties: {
+                ocrText: { type: "string" },
+                ocrConfidence: {
+                  type: "string",
+                  enum: ["alta", "media", "baja"],
+                },
+                visualDescription: { type: "string" },
+                detectedObjects: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      label: { type: "string" },
+                      category: {
+                        type: "string",
+                        enum: [
+                          "persona",
+                          "documento",
+                          "dispositivo",
+                          "ubicacion",
+                          "texto",
+                          "objeto",
+                          "otro",
+                        ],
+                      },
+                      relevance: {
+                        type: "string",
+                        enum: ["alta", "media", "baja"],
+                      },
+                      description: { type: "string" },
+                    },
+                    required: ["label", "category", "relevance", "description"],
+                    additionalProperties: false,
+                  },
+                },
+                forensicIndicators: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      type: {
+                        type: "string",
+                        enum: [
+                          "manipulacion",
+                          "edicion",
+                          "inconsistencia",
+                          "marca_agua",
+                          "metadata_anomalia",
+                          "otro",
+                        ],
+                      },
+                      description: { type: "string" },
+                      severity: {
+                        type: "string",
+                        enum: ["alta", "media", "baja"],
+                      },
+                    },
+                    required: ["type", "description", "severity"],
+                    additionalProperties: false,
+                  },
+                },
+                personsDetected: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      description: { type: "string" },
+                      identifyingFeatures: {
+                        type: "array",
+                        items: { type: "string" },
+                      },
+                      location: { type: "string" },
+                    },
+                    required: [
+                      "description",
+                      "identifyingFeatures",
+                      "location",
+                    ],
+                    additionalProperties: false,
+                  },
+                },
+                documentsDetected: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      type: { type: "string" },
+                      content: { type: "string" },
+                      issuingAuthority: { type: "string" },
+                      dates: { type: "array", items: { type: "string" } },
+                    },
+                    required: ["type", "content"],
+                    additionalProperties: false,
+                  },
+                },
+                locationClues: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      type: {
+                        type: "string",
+                        enum: ["gps", "visual", "texto", "metadata"],
+                      },
+                      value: { type: "string" },
+                      confidence: {
+                        type: "string",
+                        enum: ["alta", "media", "baja"],
+                      },
+                    },
+                    required: ["type", "value", "confidence"],
+                    additionalProperties: false,
+                  },
+                },
+                temporalClues: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      type: {
+                        type: "string",
+                        enum: ["exif", "visual", "texto", "metadata"],
+                      },
+                      value: { type: "string" },
+                      confidence: {
+                        type: "string",
+                        enum: ["alta", "media", "baja"],
+                      },
+                    },
+                    required: ["type", "value", "confidence"],
+                    additionalProperties: false,
+                  },
+                },
+                manipulationAssessment: {
+                  type: "object",
+                  properties: {
+                    likelihood: {
+                      type: "string",
+                      enum: ["alta", "media", "baja", "ninguna"],
+                    },
+                    indicators: { type: "array", items: { type: "string" } },
+                    explanation: { type: "string" },
+                  },
+                  required: ["likelihood", "indicators", "explanation"],
+                  additionalProperties: false,
+                },
+                forensicSummary: { type: "string" },
+                legalRelevance: {
+                  type: "string",
+                  enum: ["alta", "media", "baja"],
+                },
+                legalRelevanceExplanation: { type: "string" },
+              },
+              required: [
+                "ocrText",
+                "ocrConfidence",
+                "visualDescription",
+                "detectedObjects",
+                "forensicIndicators",
+                "personsDetected",
+                "documentsDetected",
+                "locationClues",
+                "temporalClues",
+                "manipulationAssessment",
+                "forensicSummary",
+                "legalRelevance",
+                "legalRelevanceExplanation",
+              ],
+              additionalProperties: false,
+            },
+          },
+          required: ["exif", "forensic"],
+          additionalProperties: false,
+        },
+      },
+    },
+  });
+
+  const rawContent = response.choices[0]?.message?.content;
+  const content = typeof rawContent === "string" ? rawContent : null;
+  if (!content) {
+    return { exif: {}, vision: {} as ImageForensicAnalysis };
+  }
+
+  try {
+    const parsed = JSON.parse(content);
+    return {
+      exif: (parsed.exif || {}) as ExifMetadata,
+      vision: (parsed.forensic || {}) as ImageForensicAnalysis,
+    };
+  } catch {
+    return { exif: {}, vision: {} as ImageForensicAnalysis };
+  }
+}
 
 export async function runImageAnalysis(
   imageUrl: string,
@@ -443,10 +734,13 @@ export async function runImageAnalysis(
   mimeType: string,
   caseContext?: string
 ): Promise<ImageAnalysisResult> {
-  const [exif, vision] = await Promise.all([
-    extractExifFromBase64(base64Data, mimeType, filename),
-    analyzeImageForensics(imageUrl, filename, mimeType, caseContext),
-  ]);
+  const { exif, vision } = await analyzeImageComprehensive(
+    imageUrl,
+    base64Data,
+    filename,
+    mimeType,
+    caseContext
+  );
 
   return {
     exif,

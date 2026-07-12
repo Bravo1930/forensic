@@ -68,12 +68,10 @@ vi.mock("./db", () => ({
 
 // Mock storage
 vi.mock("./storage", () => ({
-  storagePut: vi
-    .fn()
-    .mockResolvedValue({
-      url: "https://example.com/file.html",
-      key: "test-key",
-    }),
+  storagePut: vi.fn().mockResolvedValue({
+    url: "https://example.com/file.html",
+    key: "test-key",
+  }),
 }));
 
 // Mock forensicAI
@@ -121,6 +119,7 @@ function createAuthContext(role: "user" | "admin" = "user"): TrpcContext {
     openId: "test-user-openid",
     email: "test@example.com",
     name: "Test User",
+    passwordHash: null,
     loginMethod: "manus",
     role,
     createdAt: new Date(),

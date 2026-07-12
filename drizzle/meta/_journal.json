@@ -29,6 +29,13 @@
       "when": 1779930885679,
       "tag": "0003_sleepy_swarm",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1782197911282,
+      "tag": "0004_rainy_doorman",
+      "breakpoints": true
     }
   ]
 }

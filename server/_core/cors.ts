@@ -34,16 +34,11 @@ export function corsMiddleware(
 
   const lowerOrigin = origin.toLowerCase();
   if (!allowed.has(lowerOrigin)) {
-    const isProduction =
-      process.env.NODE_ENV === "production" &&
-      (process.env.ALLOWED_ORIGINS ?? "") !== "";
-    if (isProduction) {
-      console.warn(
-        `[CORS] Blocked origin in production: ${origin} — allowed: ${Array.from(allowed).join(", ")}`
-      );
-    }
+    console.warn(
+      `[CORS] Blocked origin: ${origin} — allowed: ${Array.from(allowed).join(", ")}`
+    );
     if (req.method === "OPTIONS") return res.status(204).end();
-    return next();
+    return res.status(403).json({ error: "Origin not allowed" });
   }
 
   res.setHeader("Access-Control-Allow-Origin", lowerOrigin);

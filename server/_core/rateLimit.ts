@@ -1,8 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
 import { ENV } from "./env";
 
-// Escape hatch for development: DISABLE_RATE_LIMIT=true bypasses all limits
+// Rate limiting is enabled in all environments by default.
+// Disable explicitly with DISABLE_RATE_LIMIT=true if needed (e.g. load testing).
 const DISABLE = process.env.DISABLE_RATE_LIMIT === "true";
+
+// In dev/Docker, use generous limits so it doesn't get in the way
+const DEV_MULTIPLIER = ENV.isProduction ? 1 : 5;
 
 interface RateLimitEntry {
   count: number;
@@ -19,9 +23,15 @@ const userStore = new Map<string, UserRateLimitEntry>();
 const MAX_STORE_SIZE = 10000;
 
 const PLAN_LIMITS = {
-  free: { requests: ENV.rateLimits.free, windowMs: 60 * 1000 },
-  premium: { requests: ENV.rateLimits.premium, windowMs: 60 * 1000 },
-  enterprise: { requests: ENV.rateLimits.enterprise, windowMs: 60 * 1000 },
+  free: { requests: ENV.rateLimits.free * DEV_MULTIPLIER, windowMs: 60 * 1000 },
+  premium: {
+    requests: ENV.rateLimits.premium * DEV_MULTIPLIER,
+    windowMs: 60 * 1000,
+  },
+  enterprise: {
+    requests: ENV.rateLimits.enterprise * DEV_MULTIPLIER,
+    windowMs: 60 * 1000,
+  },
 };
 
 function getClientIdentifier(req: Request): string {
@@ -98,6 +108,21 @@ export function rateLimitMiddleware(
 ) {
   if (DISABLE) return next();
 
+  // Skip rate limiting for Manus debug collector (dev-only internal logging)
+  if (req.path.startsWith("/__manus__/")) return next();
+
+  // Skip rate limiting for Vite dev server module requests (src files, HMR, etc.)
+  if (
+    !ENV.isProduction &&
+    (req.path.startsWith("/src/") ||
+      req.path.startsWith("/@id/") ||
+      req.path.startsWith("/@fs/") ||
+      req.path.startsWith("/node_modules/.vite/") ||
+      req.path.startsWith("/__vite_"))
+  ) {
+    return next();
+  }
+
   const ipKey = `ip:${getClientIdentifier(req)}`;
   const now = Date.now();
 
@@ -159,6 +184,10 @@ export function rateLimitMiddleware(
 }
 
 export function strictRateLimit(maxRequests = 10, windowMs = 60 * 1000) {
+  if (DISABLE) {
+    return (_req: Request, _res: Response, next: NextFunction) => next();
+  }
+
   const store = new Map<string, RateLimitEntry>();
 
   return (req: Request, res: Response, next: NextFunction) => {

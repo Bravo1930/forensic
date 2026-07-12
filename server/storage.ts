@@ -100,7 +100,9 @@ export async function storagePut(
       fs.writeFileSync(localPath, textBuffer);
 
       const url = `${LOCAL_BASE_URL}/uploads/${encKey}`;
-      console.log(`[Storage] Encrypted local upload: ${encKey} -> ${url}`);
+      console.log(
+        `[Storage] Encrypted local upload: ${encKey.slice(0, 8)}... -> ${url}`
+      );
       return { key: encKey, url };
     }
 
@@ -145,7 +147,7 @@ export async function storagePut(
     fs.writeFileSync(localPath, buffer);
 
     const url = `${LOCAL_BASE_URL}/uploads/${key}`;
-    console.log(`[Storage] Local upload: ${key} -> ${url}`);
+    console.log(`[Storage] Local upload: ${key.slice(0, 8)}... -> ${url}`);
     return { key, url };
   }
 

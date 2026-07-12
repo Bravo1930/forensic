@@ -13,28 +13,21 @@ import {
   deleteCase,
   countCasesByUser,
   getSubscription,
-  upsertUser,
-  getUserByOpenId,
 } from "../db";
 import { sdk } from "../_core/sdk";
-import type { User } from "../../drizzle/schema";
+import { sanitizedString, sanitizedTextarea } from "../_core/sanitization";
 
 const router = Router();
 
-// Demo user constants
-const DEMO_OPENID = "demo-user-forensic-legal";
-const DEMO_USER_NAME = "Usuario Demo";
-const DEMO_USER_EMAIL = "demo@forensiclegal.local";
-
 // Validation schema for creating a case
 const createCaseSchema = z.object({
-  title: z.string().min(1).max(255),
-  caseNumber: z.string().max(100).optional(),
-  description: z.string().optional(),
-  clientName: z.string().max(255).optional(),
-  opposingParty: z.string().max(255).optional(),
-  court: z.string().max(255).optional(),
-  jurisdiction: z.string().max(255).optional(),
+  title: sanitizedString(255),
+  caseNumber: sanitizedString(100).optional(),
+  description: sanitizedTextarea().optional(),
+  clientName: sanitizedString(255).optional(),
+  opposingParty: sanitizedString(255).optional(),
+  court: sanitizedString(255).optional(),
+  jurisdiction: sanitizedString(255).optional(),
   caseType: z
     .enum([
       "civil",
@@ -51,70 +44,19 @@ const createCaseSchema = z.object({
   hearingDate: z.string().optional(),
 });
 
-/**
- * Get or create demo user for development/testing
- */
-async function getOrCreateDemoUser(): Promise<User> {
-  let user = await getUserByOpenId(DEMO_OPENID);
-
-  if (!user) {
-    console.log("[Demo] Creating demo user...");
-    await upsertUser({
-      openId: DEMO_OPENID,
-      name: DEMO_USER_NAME,
-      email: DEMO_USER_EMAIL,
-      loginMethod: "demo",
-      lastSignedIn: new Date(),
-      role: "user",
-    });
-    user = await getUserByOpenId(DEMO_OPENID);
-  }
-
-  if (!user) {
-    throw new Error("Failed to create demo user");
-  }
-
-  return user;
-}
-
-/**
- * Middleware to authenticate user
- * In development mode, falls back to demo user if no valid session
- */
 async function authenticateUser(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   try {
-    // Try to authenticate with real session
     const user = await sdk.authenticateRequest(req);
     (req as any).user = user;
-    console.log(`[Auth] Authenticated user: ${user.name} (${user.id})`);
     next();
-  } catch (error) {
-    // In development, fall back to demo user
-    if (process.env.NODE_ENV === "development") {
-      try {
-        const demoUser = await getOrCreateDemoUser();
-        (req as any).user = demoUser;
-        console.log(
-          `[Auth] Using demo user in development mode: ${demoUser.name} (${demoUser.id})`
-        );
-        next();
-      } catch (demoError) {
-        console.error("[Auth] Failed to create demo user:", demoError);
-        return res.status(401).json({
-          error: "No autenticado",
-          message:
-            "Por favor inicia sesión o verifica la conexión a la base de datos",
-        });
-      }
-    } else {
-      return res
-        .status(401)
-        .json({ error: "No autenticado", message: "Por favor inicia sesión" });
-    }
+  } catch {
+    return res
+      .status(401)
+      .json({ error: "No autenticado", message: "Por favor inicia sesión" });
   }
 }
 
@@ -151,17 +93,14 @@ router.post("/", authenticateUser, async (req, res) => {
 
     const input = parseResult.data;
 
-    // Check subscription limits (skip for demo user)
-    if (user.openId !== DEMO_OPENID) {
-      const sub = await getSubscription(user.id);
-      if (sub) {
-        const count = await countCasesByUser(user.id);
-        if (count >= sub.casesLimit) {
-          return res.status(403).json({
-            error: "Límite alcanzado",
-            message: `Has alcanzado el límite de ${sub.casesLimit} casos activos en tu plan ${sub.plan}. Actualiza tu suscripción para crear más casos.`,
-          });
-        }
+    const sub = await getSubscription(user.id);
+    if (sub) {
+      const count = await countCasesByUser(user.id);
+      if (count >= sub.casesLimit) {
+        return res.status(403).json({
+          error: "Límite alcanzado",
+          message: `Has alcanzado el límite de ${sub.casesLimit} casos activos en tu plan ${sub.plan}. Actualiza tu suscripción para crear más casos.`,
+        });
       }
     }
 
@@ -223,13 +162,13 @@ router.get("/:id", authenticateUser, async (req, res) => {
 
 // Allowed fields for PATCH (whitelist)
 const updateCaseSchema = z.object({
-  title: z.string().min(1).max(255).optional(),
-  caseNumber: z.string().max(100).optional(),
-  description: z.string().optional(),
-  clientName: z.string().max(255).optional(),
-  opposingParty: z.string().max(255).optional(),
-  court: z.string().max(255).optional(),
-  jurisdiction: z.string().max(255).optional(),
+  title: sanitizedString(255).optional(),
+  caseNumber: sanitizedString(100).optional(),
+  description: sanitizedTextarea().optional(),
+  clientName: sanitizedString(255).optional(),
+  opposingParty: sanitizedString(255).optional(),
+  court: sanitizedString(255).optional(),
+  jurisdiction: sanitizedString(255).optional(),
   caseType: z
     .enum([
       "civil",

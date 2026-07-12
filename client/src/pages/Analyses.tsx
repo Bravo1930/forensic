@@ -154,11 +154,38 @@ function AnalysisRow({
   );
 }
 
+function AnalysisSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Card key={i} className="bg-card border-border">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-muted rounded-lg animate-pulse shrink-0" />
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+                <div className="h-3 w-32 bg-muted rounded animate-pulse" />
+                <div className="flex gap-4">
+                  <div className="h-3 w-20 bg-muted rounded animate-pulse" />
+                  <div className="h-3 w-20 bg-muted rounded animate-pulse" />
+                  <div className="h-3 w-20 bg-muted rounded animate-pulse" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 export default function Analyses() {
   const [, navigate] = useLocation();
   const {
     data: analyses = [],
     isLoading,
+    isError,
+    error,
     refetch,
   } = trpc.analyses.listAll.useQuery();
   const listRef = useRef<HTMLDivElement>(null);
@@ -194,9 +221,23 @@ export default function Analyses() {
         </div>
 
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">
-            Cargando análisis...
-          </div>
+          <AnalysisSkeleton />
+        ) : isError ? (
+          <Card className="bg-card border-destructive/30">
+            <CardContent className="py-12 text-center">
+              <AlertTriangle className="w-10 h-10 text-destructive mx-auto mb-3" />
+              <p className="text-destructive font-medium mb-1">
+                Error al cargar análisis
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                {error?.message ?? "Intenta de nuevo más tarde"}
+              </p>
+              <Button variant="outline" onClick={() => refetch()}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Reintentar
+              </Button>
+            </CardContent>
+          </Card>
         ) : analyses.length === 0 ? (
           <Card className="bg-card border-border">
             <CardContent className="py-16 text-center">

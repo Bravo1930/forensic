@@ -41,6 +41,7 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
+import CommandPalette from "./CommandPalette";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -68,11 +69,6 @@ export default function DashboardLayout({
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
   const { loading, user } = useAuth();
-
-  const loginDemo = trpc.auth.loginDemo.useMutation({
-    onSuccess: () => window.location.reload(),
-    onError: () => window.location.reload(),
-  });
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
@@ -102,16 +98,6 @@ export default function DashboardLayout({
           >
             Iniciar sesión
           </Button>
-          {import.meta.env.DEV && (
-            <Button
-              variant="outline"
-              onClick={() => loginDemo.mutate()}
-              disabled={loginDemo.isPending}
-              className="w-full"
-            >
-              {loginDemo.isPending ? "Cargando..." : "Modo Demo (desarrollo)"}
-            </Button>
-          )}
         </div>
       </div>
     );
@@ -180,6 +166,7 @@ function DashboardLayoutContent({
 
   return (
     <>
+      <CommandPalette isAdmin={user?.role === "admin"} />
       <div className="relative" ref={sidebarRef}>
         <Sidebar
           collapsible="icon"
@@ -191,12 +178,14 @@ function DashboardLayoutContent({
             <div className="flex items-center gap-3 px-2">
               <button
                 onClick={toggleSidebar}
-                className="h-8 w-8 flex items-center justify-center hover:bg-sidebar-accent rounded-lg transition-colors shrink-0"
+                className="h-8 w-8 flex items-center justify-center hover:bg-sidebar-accent rounded-lg transition-colors shrink-0 group"
               >
-                <PanelLeft className="h-4 w-4 text-muted-foreground" />
+                <PanelLeft
+                  className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isCollapsed ? "rotate-180" : ""}`}
+                />
               </button>
               {!isCollapsed && (
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0 animate-in fade-in slide-in-from-left-2 duration-200">
                   <div className="w-6 h-6 bg-primary rounded flex items-center justify-center shrink-0">
                     <Shield className="w-3 h-3 text-primary-foreground" />
                   </div>
@@ -353,11 +342,10 @@ function DashboardLayoutContent({
 
         {/* Resize handle */}
         <div
-          className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/30 transition-colors ${isCollapsed ? "hidden" : ""}`}
+          className={`sidebar-resize-handle ${isCollapsed ? "hidden" : ""}`}
           onMouseDown={() => {
             if (!isCollapsed) setIsResizing(true);
           }}
-          style={{ zIndex: 50 }}
         />
       </div>
 
@@ -372,7 +360,7 @@ function DashboardLayoutContent({
             </div>
           </div>
         )}
-        <main className="flex-1 p-6 min-h-screen">{children}</main>
+        <main className="flex-1 p-6 min-h-screen page-enter">{children}</main>
       </SidebarInset>
     </>
   );

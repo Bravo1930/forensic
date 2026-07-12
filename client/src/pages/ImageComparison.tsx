@@ -8,6 +8,18 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
@@ -16,6 +28,7 @@ import {
   Clock,
   Eye,
   FileSearch,
+  FolderOpen,
   GitCompare,
   Loader2,
   Maximize2,
@@ -536,19 +549,36 @@ function ComparisonHistory({ caseId }: { caseId: number }) {
                 {new Date(comp.createdAt).toLocaleDateString("es-MX")}
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 hover:text-destructive"
-              onClick={e => {
-                e.stopPropagation();
-                if (confirm("¿Eliminar esta comparación?")) {
-                  deleteComparison.mutate({ id: comp.id });
-                }
-              }}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 hover:text-destructive"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent onClick={e => e.stopPropagation()}>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Eliminar comparación</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    ¿Eliminar esta comparación de imágenes? Esta acción no se
+                    puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive hover:bg-destructive/90"
+                    onClick={() => deleteComparison.mutate({ id: comp.id })}
+                  >
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         );
       })}
@@ -1101,6 +1131,22 @@ export default function ImageComparison() {
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-4">
+        {/* Breadcrumbs */}
+        {caseData && (
+          <Breadcrumbs
+            segments={[
+              { label: "Casos", href: "/casos", icon: FolderOpen },
+              {
+                label: caseData.title,
+                href: `/cases/${caseId}`,
+                icon: FolderOpen,
+              },
+              { label: "Comparación Forense", icon: GitCompare },
+            ]}
+            onNavigate={navigate}
+          />
+        )}
+
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button
@@ -1118,11 +1164,6 @@ export default function ImageComparison() {
                 Comparación Forense de Imágenes
               </h1>
             </div>
-            {caseData && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Caso: {caseData.title}
-              </p>
-            )}
           </div>
         </div>
 

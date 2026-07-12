@@ -128,7 +128,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="home-page min-h-screen bg-background text-foreground">
       {/* ─── Navigation ─────────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="container flex items-center justify-between h-16">
@@ -236,13 +236,7 @@ export default function Home() {
                 variant="outline"
                 size="lg"
                 className="text-base px-8 h-12 border-border hover:border-primary/50"
-                onClick={() => {
-                  if (import.meta.env.DEV) {
-                    navigate("/dashboard");
-                  } else {
-                    navigate("/login");
-                  }
-                }}
+                onClick={() => navigate("/login")}
               >
                 <Scale className="w-5 h-5 mr-2" />
                 Ver demostración

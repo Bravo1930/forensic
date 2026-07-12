@@ -32,23 +32,45 @@ export async function processForensicAnalysis(
     forceFresh,
   } = caseData;
 
-  const aiResult = await runForensicAnalysis(
-    caseTitle,
-    caseDescription,
-    caseType,
-    evidenceList,
-    userName,
-    forceFresh
-  );
+  let aiResult;
+  try {
+    aiResult = await runForensicAnalysis(
+      caseTitle,
+      caseDescription,
+      caseType,
+      evidenceList,
+      userName,
+      forceFresh
+    );
+  } catch (error: unknown) {
+    console.error("[AnalysisProcessor] ❌ ERROR in runForensicAnalysis:", {
+      analysisId,
+      userId,
+      analysisTitle,
+      caseTitle,
+      caseType,
+      evidenceCount: evidenceList?.length,
+      error:
+        error instanceof Error
+          ? {
+              name: error.name,
+              message: error.message,
+              cause: error.cause,
+            }
+          : error,
+      timestamp: new Date().toISOString(),
+    });
+    throw error;
+  }
 
   const processingTimeMs = Date.now() - startTime;
 
   await updateAnalysis(analysisId, userId, {
     status: "completado",
-    executiveSummary: aiResult.executiveSummary,
-    expertOpinion: aiResult.expertOpinion,
-    prosecutionTheory: aiResult.prosecutionTheory,
-    defenseTheory: aiResult.defenseTheory,
+    executiveSummary: JSON.stringify(aiResult.executiveSummary),
+    expertOpinion: JSON.stringify(aiResult.expertOpinion),
+    prosecutionTheory: JSON.stringify(aiResult.prosecutionTheory),
+    defenseTheory: JSON.stringify(aiResult.defenseTheory),
     inconsistencies: JSON.stringify(aiResult.inconsistencies),
     suspiciousPatterns: JSON.stringify(aiResult.suspiciousPatterns),
     keyFindings: JSON.stringify(aiResult.keyFindings),
@@ -86,24 +108,46 @@ export async function processContradictionAnalysis(
     forceFresh,
   } = caseData;
 
-  const aiResult = await runContradictionAnalysis(
-    caseTitle,
-    caseDescription,
-    caseType,
-    evidenceList,
-    userName,
-    forceFresh
-  );
+  let aiResult;
+  try {
+    aiResult = await runContradictionAnalysis(
+      caseTitle,
+      caseDescription,
+      caseType,
+      evidenceList,
+      userName,
+      forceFresh
+    );
+  } catch (error: unknown) {
+    console.error("[AnalysisProcessor] ❌ ERROR in runContradictionAnalysis:", {
+      analysisId,
+      userId,
+      analysisTitle,
+      caseTitle,
+      caseType,
+      evidenceCount: evidenceList?.length,
+      error:
+        error instanceof Error
+          ? {
+              name: error.name,
+              message: error.message,
+              cause: error.cause,
+            }
+          : error,
+      timestamp: new Date().toISOString(),
+    });
+    throw error;
+  }
 
   const processingTimeMs = Date.now() - startTime;
 
   await updateAnalysis(analysisId, userId, {
     status: "completado",
-    contradictionSummary: aiResult.contradictionSummary,
-    factsTable: aiResult.factsTable,
-    weakPoints: aiResult.weakPoints,
+    contradictionSummary: JSON.stringify(aiResult.contradictionSummary),
+    factsTable: JSON.stringify(aiResult.factsTable),
+    weakPoints: JSON.stringify(aiResult.weakPoints),
     keyFindings: JSON.stringify(aiResult.keyFindings),
-    timelineEvents: aiResult.timelineOfEvents,
+    timelineEvents: JSON.stringify(aiResult.timelineOfEvents),
     criticalAlertSent: aiResult.hasCriticalContradictions,
     processingTimeMs,
   });

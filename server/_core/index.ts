@@ -15,6 +15,10 @@ import { registerCors } from "./cors";
 import { registerCsrfProtection } from "./csrf";
 import { startWorker } from "./queue";
 import { handleAnalysisJob } from "./analysisWorker";
+import { validateEnvironment } from "./env";
+
+// Validate environment configuration on startup
+validateEnvironment();
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -39,6 +43,11 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
+  // Trust proxy when behind a reverse proxy (nginx, cloudflare, etc.)
+  if (process.env.TRUST_PROXY === "true") {
+    app.set("trust proxy", 1);
+  }
+
   // Security headers (CORS first, then security headers, then CSRF)
   registerCors(app);
   registerSecurityHeaders(app);
@@ -59,8 +68,8 @@ async function startServer() {
     app.use("/uploads", express.static(LOCAL_UPLOAD_DIR));
   }
 
-  // Rate limiting global (configurable per plan via env vars)
-  app.use(rateLimitMiddleware);
+  // Rate limiting — only applies to /api routes, NOT to Vite-served modules
+  app.use("/api", rateLimitMiddleware);
 
   // Strict rate limiting for OAuth and auth endpoints
   app.use("/api/oauth", strictRateLimit(10, 60 * 1000));

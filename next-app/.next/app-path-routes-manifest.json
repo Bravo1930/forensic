@@ -1,0 +1,14 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/casos/page": "/casos",
+  "/analisis/page": "/analisis",
+  "/analisis/[id]/page": "/analisis/[id]",
+  "/admin/page": "/admin",
+  "/dashboard/page": "/dashboard",
+  "/page": "/",
+  "/suscripcion/page": "/suscripcion",
+  "/casos/[id]/page": "/casos/[id]",
+  "/evidencia/page": "/evidencia",
+  "/reportes/page": "/reportes",
+  "/portfolio/page": "/portfolio"
+}

@@ -116,6 +116,17 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 export async function getAllUsers() {
   const db = await getDb();
   if (!db) return [];
@@ -139,7 +150,7 @@ export async function ensureSubscription(userId: number) {
       plan: "free",
       analysesUsed: 0,
       analysesLimit: 3,
-      casesLimit: 5,
+      casesLimit: 3,
       storageUsedBytes: 0,
       storageLimitBytes: 524288000,
       periodStart: new Date(),
@@ -197,10 +208,10 @@ export async function upgradePlan(
   periodEnd.setMonth(periodEnd.getMonth() + 1);
   const limits =
     plan === "premium"
-      ? { analysesLimit: 50, casesLimit: 100, storageLimitBytes: 10737418240 }
+      ? { analysesLimit: 20, casesLimit: 50, storageLimitBytes: 10737418240 }
       : {
-          analysesLimit: 999,
-          casesLimit: 9999,
+          analysesLimit: 999999,
+          casesLimit: 999999,
           storageLimitBytes: 107374182400,
         };
   await db

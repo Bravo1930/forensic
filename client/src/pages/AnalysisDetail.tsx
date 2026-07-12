@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -13,6 +14,7 @@ import {
   Clock,
   Download,
   FileText,
+  FolderOpen,
   Loader2,
   Network,
   Scale,
@@ -112,18 +114,36 @@ export default function AnalysisDetail() {
     );
   }
 
-  const keyFindings = (analysis.keyFindings as unknown as KeyFinding[]) ?? [];
-  const timelineEvents =
-    (analysis.timelineEvents as unknown as TimelineEvent[]) ?? [];
-  const relationshipGraph = (analysis.relationshipGraph as unknown as {
-    nodes: unknown[];
-    edges: unknown[];
-  }) ?? { nodes: [], edges: [] };
+  const rawKeyFindings = analysis.keyFindings;
+  const keyFindings: KeyFinding[] = Array.isArray(rawKeyFindings)
+    ? rawKeyFindings
+    : typeof rawKeyFindings === "string"
+      ? JSON.parse(rawKeyFindings)
+      : [];
+  const timelineEvents: TimelineEvent[] = Array.isArray(analysis.timelineEvents)
+    ? analysis.timelineEvents
+    : typeof analysis.timelineEvents === "string"
+      ? JSON.parse(analysis.timelineEvents)
+      : [];
+  const relationshipGraph =
+    analysis.relationshipGraph &&
+    typeof analysis.relationshipGraph === "object" &&
+    !Array.isArray(analysis.relationshipGraph)
+      ? (analysis.relationshipGraph as { nodes: unknown[]; edges: unknown[] })
+      : { nodes: [], edges: [] };
   const criticalFindings = keyFindings.filter(f => f.severity === "alta");
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <Breadcrumbs
+          segments={[
+            { label: "Casos", href: "/casos", icon: FolderOpen },
+            { label: "Análisis" },
+            { label: analysis.title ?? "" },
+          ]}
+          onNavigate={navigate}
+        />
         {/* Header */}
         <div className="flex items-start gap-4">
           <Button

@@ -2,8 +2,8 @@ import { ENV } from "./env";
 
 const IS_DEV = process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "llama3.2";
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-1.5-flash";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "llama3.2:1b";
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -371,13 +371,16 @@ async function invokeGemini(params: InvokeParams): Promise<InvokeResult> {
   const payload: Record<string, unknown> = { contents, generationConfig };
   if (systemInstruction) payload.systemInstruction = systemInstruction;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   console.log(`[Gemini] Using model: ${model}, contents: ${contents.length}`);
 
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    },
     body: JSON.stringify(payload),
   });
 
@@ -401,16 +404,21 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const { messages, maxTokens, max_tokens, response_format, responseFormat } =
     params;
 
-  if (ENV.geminiApiKey) {
-    return invokeGemini(params);
-  }
-
-  const apiKey = resolveApiKey();
-  const model = resolveModel();
-  const isOllama = IS_DEV && ENV.forgeApiUrl === "";
-
-  if (isOllama) {
+  // Priority: Ollama (if configured) → Gemini (if key set) → Forge/OpenAI-compatible
+  if (ENV.ollamaUrl && !ENV.geminiApiKey) {
     const ollamaMessages = convertToOllamaFormat(messages);
+    const debugTag = `ollama-${Date.now()}`;
+
+    console.log(`[Ollama] === ${debugTag} ===`);
+    console.log(`[Ollama] Model: ${OLLAMA_MODEL}`);
+    console.log(`[Ollama] URL: ${ENV.ollamaUrl}/api/chat`);
+    console.log(`[Ollama] Messages: ${ollamaMessages.length}`);
+    console.log(
+      `[Ollama] Total prompt chars: ${ollamaMessages.reduce((s, m) => s + m.content.length, 0)}`
+    );
+    console.log(
+      `[Ollama] Response format: ${JSON.stringify(response_format ?? responseFormat)}`
+    );
 
     const rf = response_format ?? responseFormat;
     if (rf) {
@@ -431,41 +439,95 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       }
     }
 
-    const payload = {
-      model,
+    const payload: Record<string, unknown> = {
+      model: OLLAMA_MODEL,
       messages: ollamaMessages,
       stream: false,
       options: {
         temperature: 0.3,
-        num_predict: maxTokens ?? max_tokens ?? 4096,
+        num_predict: maxTokens ?? max_tokens ?? 8192,
       },
     };
 
-    console.log(
-      `[Ollama] Using model: ${model}, messages: ${ollamaMessages.length}`
-    );
-
-    const response = await fetch(resolveApiUrl(), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Ollama invoke failed: ${response.status} ${response.statusText} – ${errorText}`
-      );
+    if (rf) {
+      payload.format = "json";
     }
 
-    const result = await response.json();
-    console.log(
-      `[Ollama] Response received, length: ${result.message?.content?.length ?? 0}`
-    );
-    return convertFromOllamaResponse(result, model);
+    console.log(`[Ollama] Payload keys: ${Object.keys(payload).join(", ")}`);
+
+    const controller = new AbortController();
+    const OLLAMA_TIMEOUT_MS = 180_000;
+    const timeoutId = setTimeout(() => controller.abort(), OLLAMA_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(`${ENV.ollamaUrl}/api/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      console.log(
+        `[Ollama] HTTP status: ${response.status} ${response.statusText}`
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[Ollama] HTTP error body: ${errorText.slice(0, 2000)}`);
+        throw new Error(
+          `Ollama invoke failed: ${response.status} ${response.statusText} – ${errorText}`
+        );
+      }
+
+      const result = await response.json();
+      const contentLen = result.message?.content?.length ?? 0;
+      console.log(`[Ollama] Response received, content length: ${contentLen}`);
+
+      if (contentLen === 0) {
+        console.error(
+          `[Ollama] Empty response from model. Full result: ${JSON.stringify(result).slice(0, 1000)}`
+        );
+        throw new Error(
+          `Ollama devolvió una respuesta vacía para el modelo "${OLLAMA_MODEL}"`
+        );
+      }
+
+      const first200 = result.message.content.slice(0, 200);
+      console.log(`[Ollama] Content preview: ${JSON.stringify(first200)}`);
+
+      return convertFromOllamaResponse(result, OLLAMA_MODEL);
+    } catch (error: unknown) {
+      console.error(`[Ollama] Error (${debugTag}):`, error);
+
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        (error as any).name === "AbortError"
+      ) {
+        console.error(
+          `[Ollama] TIMEOUT after ${OLLAMA_TIMEOUT_MS / 1000}s — model "${OLLAMA_MODEL}" did not respond in time`
+        );
+        throw new Error(
+          `Ollama timed out after ${OLLAMA_TIMEOUT_MS / 1000} segundos — ` +
+            `el modelo "${OLLAMA_MODEL}" está tardando demasiado. ` +
+            `Verifica que Ollama esté corriendo con: ollama list`
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+      console.log(`[Ollama] === end ${debugTag} ===`);
+    }
   }
+
+  if (ENV.geminiApiKey) {
+    return invokeGemini(params);
+  }
+
+  const apiKey = resolveApiKey();
+  const model = resolveModel();
 
   const payload: Record<string, unknown> = {
     model,

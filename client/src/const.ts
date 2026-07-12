@@ -1,3 +1,3 @@
 export const getLoginUrl = () => {
-  return "/dashboard";
+  return "/login";
 };
