@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap');
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -44,149 +46,89 @@
 
 :root {
   --radius: 0.5rem;
-  --background: #12151e;
-  --foreground: #f1f5f9;
-  --card: #1a1d27;
-  --card-foreground: #f1f5f9;
-  --popover: #1a1d27;
-  --popover-foreground: #f1f5f9;
-  --primary: #e8b86d;
-  --primary-foreground: #12151e;
-  --secondary: #1a1d27;
-  --secondary-foreground: #f1f5f9;
-  --muted: #1a1d27;
-  --muted-foreground: #8892a0;
-  --accent: #e8b86d;
-  --accent-foreground: #12151e;
-  --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
-  --border: #2a2e3a;
+  /* Fondo y texto base */
+  --background: #0e1116;      /* casi negro, muy oscuro */
+  --foreground: #e8edf2;      /* gris‑azulado muy claro */
+  /* Tarjetas y superficies */
+  --card: #141821;            /* un toque más oscuro que el fondo */
+  --card-foreground: #e8edf2;
+  /* Popover / menús */
+  --popover: #141821;
+  --popover-foreground: #e8edf2;
+  /* Colores de marca (forensic dark) */
+  --primary: #d32f2f;         /* rojo sangre */
+  --primary-foreground: #ffffff; /* texto sobre el rojo */
+  --accent: #d32f2f;          /* mismo rojo para acentos */
+  --accent-foreground: #ffffff;
+  /* Estados y feedback */
+  --destructive: #d32f2f;     /* reutilizamos el rojo para errores críticos */
+  --destructive-foreground: #ffffff;
+  /* Bordes, inputs y rings */
+  --border: #2a2e3a;          /* gris‑azulado medio */
   --input: #2a2e3a;
-  --ring: #e8b86d;
-  --chart-1: #e8b86d;
-  --chart-2: #f0d48a;
-  --chart-3: #c99a4e;
+  --ring: rgba(211,47,47,0.4); /* sutil halo rojo */
+  /* Gráficos (mantener legibilidad) */
+  --chart-1: #d32f2f;
+  --chart-2: #e57373;
+  --chart-3: #b71c1c;
   --chart-4: #8892a0;
-  --chart-5: #f1f5f9;
-  --sidebar: #0f1219;
-  --sidebar-foreground: #f1f5f9;
-  --sidebar-primary: #e8b86d;
-  --sidebar-primary-foreground: #12151e;
-  --sidebar-accent: rgba(232, 184, 109, 0.1);
-  --sidebar-accent-foreground: #e8b86d;
+  --chart-5: #e8edf2;
+  /* Sidebar (menú lateral) */
+  --sidebar: #0b0d12;
+  --sidebar-foreground: #e8edf2;
+  --sidebar-primary: #d32f2f;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(211,47,47,0.1);
+  --sidebar-accent-foreground: #d32f2f;
   --sidebar-border: #2a2e3a;
-  --sidebar-ring: #e8b86d;
+  --sidebar-ring: rgba(211,47,47,0.4);
 }
 
+/* Tipografía */
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
   body {
     @apply bg-background text-foreground;
     font-family:
-      "Inter",
+      var(--font-geist-sans),
       system-ui,
       -apple-system,
       sans-serif;
   }
-  code,
-  pre,
-  .font-mono {
-    font-family: "JetBrains Mono", "Fira Code", monospace;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Merriweather', serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
   }
-  button:not(:disabled),
-  [role="button"]:not([aria-disabled="true"]),
-  [type="button"]:not(:disabled),
-  [type="submit"]:not(:disabled),
-  [type="reset"]:not(:disabled),
-  a[href],
-  select:not(:disabled),
-  input[type="checkbox"]:not(:disabled),
-  input[type="radio"]:not(:disabled) {
-    @apply cursor-pointer;
+  .font-mono, code, pre, .data-mono {
+    font-family: 'Space Mono', monospace;
+    font-feature-settings: 'tnum'; /* números alineados */
   }
 }
 
-@layer components {
-  .container {
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-  .flex {
-    min-height: 0;
-    min-width: 0;
-  }
-  @media (min-width: 640px) {
-    .container {
-      padding-left: 1.5rem;
-      padding-right: 1.5rem;
-    }
-  }
-  @media (min-width: 1024px) {
-    .container {
-      padding-left: 2rem;
-      padding-right: 2rem;
-      max-width: 1280px;
-    }
-  }
+/* Utilidades de tarjeta “forense” */
+.card-forensic {
+  @apply bg-card text-card-foreground border border-border rounded-lg
+         shadow-sm hover:shadow-[0_0_15px_rgba(211,47,47,0.2)] transition-shadow duration-200;
 }
 
-.card-glass {
-  background: rgba(26, 29, 39, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: 0.75rem;
-  transition: all 0.3s cubic-bezier(0.15, 1, 0.3, 1);
-  border: 1px solid rgba(232, 184, 109, 0.1);
+/* Variante “glass” más oscura (para tarjetas destacadas) */
+.card-glass-forensic {
+  @apply bg-card/80 backdrop-blur-sm border border-border/20 rounded-xl
+         shadow-[0_4px_12px_rgba(0,0,0,0.4)];
 }
 
-.card-glass-strong {
-  background: rgba(26, 29, 39, 0.85);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-radius: 0.75rem;
-  border: 1px solid rgba(232, 184, 109, 0.15);
-}
-
-.glow-gold {
-  box-shadow:
-    0 0 30px rgba(232, 184, 109, 0.2),
-    0 0 60px rgba(232, 184, 109, 0.08);
-  border: 1px solid rgba(232, 184, 109, 0.4);
-}
-
-[class^="severity-"] {
-  font-weight: 600;
-  font-size: 0.75rem;
-  letter-spacing: 0.02em;
-  padding: 4px 12px;
-  border-radius: 100px;
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid transparent;
-}
-
+/* Badges de severidad (mantener pero con nuevo rojo) */
 .severity-alta {
-  background: rgba(232, 184, 109, 0.1);
-  color: #e8b86d;
-  border-color: rgba(232, 184, 109, 0.2);
+  @apply bg-red-900/20 text-red-400 border border-red-900/40
+         rounded-full px-3 py-1 text-xs font-medium;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* Barra de scroll sutil */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(136, 146, 160, 0.1);
+  background: rgba(211,47,47,0.2);
   border-radius: 10px;
-  transition: background 0.3s;
+  transition: background .2s;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(232, 184, 109, 0.6);
-}
+::-webkit-scrollbar-thumb:hover { background: rgba(211,47,47,0.4); }
