@@ -1,0 +1,57 @@
+:root {
+  /* Luxury Slate Palette - B Choice */
+  --color-base: #0F2942;
+  --color-accent-primary: #D4AF37;
+  --color-accent-secondary: #6B4AA3;
+  --color-neutral: #E8E8E8;
+  --color-dark-bg: #0A1118;
+  --color-card-bg: rgba(15, 41, 66, 0.8);
+  --color-border: rgba(212, 175, 55, 0.2);
+
+  /* Motion variables */
+  --duration-fast: 0.2s;
+  --duration-normal: 0.4s;
+  --duration-slow: 0.8s;
+  --easing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Glassmorphism base */
+.glass-effect {
+  backdrop-filter: blur(10px);
+  background-color: rgba(15, 41, 66, 0.7);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 12px;
+}
+
+/* Gradient animations */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.gradient-animated {
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease infinite;
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.float-animation {
+  animation: float 4s ease-in-out infinite;
+}
