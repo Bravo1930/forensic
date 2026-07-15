@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
+import { GlassCard } from "@/components/MotionComponents/GlassCard";
+import { motion } from "framer-motion";
 import {
   AlertTriangle,
   Brain,
@@ -30,7 +32,7 @@ const statusConfig: Record<
   },
   procesando: {
     label: "Procesando",
-    className: "border-yellow-800/50 text-yellow-400 bg-yellow-900/20",
+    className: "border-[#D4AF37]/50 text-[#D4AF37] bg-[#D4AF37]/10",
     icon: Loader2,
   },
   completado: {
@@ -92,20 +94,31 @@ function AnalysisRow({
 
   return (
     <div style={style}>
-      <Card
-        className="bg-card border-border hover:border-primary/30 transition-all cursor-pointer"
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: index * 0.05 }}
+        className="cursor-pointer"
         onClick={() =>
           a.status === "completado" && navigate(`/analisis/${a.id}`)
         }
       >
-        <CardContent className="p-4">
+        <GlassCard hoverEffect="lift" className="!p-4">
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-              <Brain className="w-5 h-5 text-primary" />
-            </div>
+            <motion.div
+              animate={{
+                scale: a.status === "procesando" ? [1, 1.1, 1] : 1,
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-10 h-10 bg-[#D4AF37]/10 rounded-lg flex items-center justify-center shrink-0"
+            >
+              <Brain className="w-5 h-5 text-[#D4AF37]" />
+            </motion.div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <h3 className="font-semibold text-sm truncate">{a.title}</h3>
+                <h3 className="font-semibold text-sm truncate text-white">
+                  {a.title}
+                </h3>
                 <Badge
                   variant="outline"
                   className={`text-[10px] px-2 py-0 h-5 shrink-0 ${statusCfg.className}`}
@@ -115,22 +128,22 @@ function AnalysisRow({
               </div>
               <p className="text-xs text-muted-foreground truncate">
                 {(a.evidenceCount ?? 0) > 0 &&
-                  ` · ${a.evidenceCount} evidencias`}
+                  `· ${a.evidenceCount} evidencias`}
               </p>
               {a.status === "completado" && (
-                <div className="flex items-center gap-4 text-xs flex-wrap">
+                <div className="flex items-center gap-4 text-xs flex-wrap mt-2">
                   {criticalCount > 0 && (
-                    <span className="flex items-center gap-1 text-red-400">
+                    <span className="flex items-center gap-1 text-red-400 bg-red-500/10 px-2 py-1 rounded">
                       <AlertTriangle className="w-3 h-3" />
                       {criticalCount} crítico
                       {criticalCount !== 1 ? "s" : ""}
                     </span>
                   )}
-                  <span className="flex items-center gap-1 text-blue-400">
+                  <span className="flex items-center gap-1 text-[#D4AF37] bg-[#D4AF37]/10 px-2 py-1 rounded">
                     <Clock className="w-3 h-3" />
                     {timelineCount} eventos
                   </span>
-                  <span className="flex items-center gap-1 text-green-400">
+                  <span className="flex items-center gap-1 text-green-400 bg-green-500/10 px-2 py-1 rounded">
                     <Network className="w-3 h-3" />
                     {graphNodes} entidades
                   </span>
@@ -138,18 +151,24 @@ function AnalysisRow({
               )}
             </div>
             {a.status === "completado" && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="shrink-0 h-8 text-xs"
-              >
-                <FileSearch className="w-3.5 h-3.5 mr-1" />
-                Ver
-              </Button>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0 h-8 text-xs border-[#D4AF37]/20 text-[#D4AF37] hover:bg-[#D4AF37]/10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/analisis/${a.id}`);
+                  }}
+                >
+                  <FileSearch className="w-3.5 h-3.5 mr-1" />
+                  Ver
+                </Button>
+              </motion.div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </GlassCard>
+      </motion.div>
     </div>
   );
 }
@@ -158,22 +177,27 @@ function AnalysisSkeleton() {
   return (
     <div className="space-y-3">
       {Array.from({ length: 5 }).map((_, i) => (
-        <Card key={i} className="bg-card border-border">
-          <CardContent className="p-4">
+        <motion.div
+          key={i}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: i * 0.1 }}
+        >
+          <GlassCard className="!p-4">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-muted rounded-lg animate-pulse shrink-0" />
+              <div className="w-10 h-10 bg-white/10 rounded-lg animate-pulse shrink-0" />
               <div className="flex-1 min-w-0 space-y-2">
-                <div className="h-4 w-48 bg-muted rounded animate-pulse" />
-                <div className="h-3 w-32 bg-muted rounded animate-pulse" />
+                <div className="h-4 w-48 bg-white/10 rounded animate-pulse" />
+                <div className="h-3 w-32 bg-white/10 rounded animate-pulse" />
                 <div className="flex gap-4">
-                  <div className="h-3 w-20 bg-muted rounded animate-pulse" />
-                  <div className="h-3 w-20 bg-muted rounded animate-pulse" />
-                  <div className="h-3 w-20 bg-muted rounded animate-pulse" />
+                  <div className="h-3 w-20 bg-white/10 rounded animate-pulse" />
+                  <div className="h-3 w-20 bg-white/10 rounded animate-pulse" />
+                  <div className="h-3 w-20 bg-white/10 rounded animate-pulse" />
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCard>
+        </motion.div>
       ))}
     </div>
   );
@@ -194,7 +218,7 @@ export default function Analyses() {
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(entries => {
+    const ro = new ResizeObserver((entries) => {
       const { height } = entries[0].contentRect;
       if (height > 0) setListHeight(height);
     });
@@ -207,53 +231,71 @@ export default function Analyses() {
   return (
     <DashboardLayout>
       <div className="flex flex-col h-full gap-6">
-        <div className="flex items-center justify-between shrink-0">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between shrink-0"
+        >
           <div>
-            <h1 className="text-2xl font-bold">Análisis Forenses</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+              Análisis Forenses
+            </h1>
             <p className="text-muted-foreground text-sm mt-1">
               {analyses.length} análisis realizados
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Actualizar
-          </Button>
-        </div>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="gap-2 border-[#D4AF37]/20 text-[#D4AF37] hover:bg-[#D4AF37]/10"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Actualizar
+            </Button>
+          </motion.div>
+        </motion.div>
 
         {isLoading ? (
           <AnalysisSkeleton />
         ) : isError ? (
-          <Card className="bg-card border-destructive/30">
-            <CardContent className="py-12 text-center">
-              <AlertTriangle className="w-10 h-10 text-destructive mx-auto mb-3" />
-              <p className="text-destructive font-medium mb-1">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <GlassCard className="!p-8 text-center border-red-500/30">
+              <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-3" />
+              <p className="text-red-300 font-medium mb-1">
                 Error al cargar análisis
               </p>
               <p className="text-sm text-muted-foreground mb-4">
                 {error?.message ?? "Intenta de nuevo más tarde"}
               </p>
-              <Button variant="outline" onClick={() => refetch()}>
-                <RefreshCw className="w-4 h-4 mr-2" />
+              <Button
+                variant="outline"
+                onClick={() => refetch()}
+                className="gap-2 border-[#D4AF37]/20 text-[#D4AF37] hover:bg-[#D4AF37]/10"
+              >
+                <RefreshCw className="w-4 h-4" />
                 Reintentar
               </Button>
-            </CardContent>
-          </Card>
+            </GlassCard>
+          </motion.div>
         ) : analyses.length === 0 ? (
-          <Card className="bg-card border-border">
-            <CardContent className="py-16 text-center">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <GlassCard className="!p-16 text-center">
               <Brain className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-muted-foreground mb-2">
-                No hay análisis realizados
-              </p>
+              <p className="text-muted-foreground mb-2">No hay análisis realizados</p>
               <p className="text-xs text-muted-foreground mb-4">
                 Abre un caso, carga evidencia y ejecuta el análisis IA
               </p>
-              <Button onClick={() => navigate("/casos")}>
+              <Button
+                onClick={() => navigate("/casos")}
+                className="bg-gradient-to-r from-[#D4AF37] to-[#6B4AA3] text-white border-0"
+              >
                 <FileSearch className="w-4 h-4 mr-2" />
                 Ir a casos
               </Button>
-            </CardContent>
-          </Card>
+            </GlassCard>
+          </motion.div>
         ) : (
           <div ref={listRef} className="flex-1 min-h-0">
             <List<AnalysisRowProps>
