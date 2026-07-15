@@ -3,6 +3,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { motion } from "framer-motion";
+import { GlassCard } from "@/components/MotionComponents/GlassCard";
+import { StaggerContainer } from "@/components/MotionComponents/StaggerContainer";
+import { FloatingButton } from "@/components/MotionComponents/FloatingButton";
 import {
   AlertTriangle,
   ArrowRight,
@@ -35,7 +39,7 @@ import { gsap } from "gsap";
 
 gsap.registerPlugin(useGSAP, Flip);
 
-// ─── Tokens ──────────────────────────────────────────────────────────────────
+// ─── Tokens ──────────────────────────────────────────────────────────────[...]
 // All palette values live here. Zero hardcoded color strings outside this block.
 const STATUS_STYLES: Record<
   string,
@@ -64,7 +68,7 @@ const PRIORITY_STYLES: Record<string, { bar: string; label: string }> = {
   baja: { bar: "bg-emerald-500", label: "text-emerald-400" },
 };
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Sub-components ────────────────────────────────────────────────────────[...]
 
 function PriorityStripe({ priority }: { priority: string }) {
   const s = PRIORITY_STYLES[priority] ?? PRIORITY_STYLES["baja"];
@@ -99,7 +103,7 @@ function CapacityRing({
   const r = 18;
   const circ = 2 * Math.PI * r;
   const dash = (pct / 100) * circ;
-  const color = danger && pct > 80 ? "#f43f5e" : "#6366f1";
+  const color = danger && pct > 80 ? "#f43f5e" : "#D4AF37";
   const ringRef = useRef<SVGCircleElement>(null);
 
   useGSAP(
@@ -155,7 +159,7 @@ function CapacityRing({
   );
 }
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
+// ─── Stat Card ─────────────────────────────────────────────────────────────[...]
 const TOOLTIPS: Record<string, string> = {
   "Casos activos": "Expedientes forenses actualmente en curso",
   "Análisis IA": "Análisis forenses realizados este período",
@@ -179,22 +183,28 @@ function StatCard({
   onClick?: () => void;
 }) {
   return (
-    <button
+    <motion.button
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="stat-card group relative flex flex-col gap-3 rounded-xl border border-white/8 bg-white/4 p-4 text-left
-                 hover:border-white/16 hover:bg-white/7 active:scale-[0.98] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      className="glass-effect group relative flex flex-col gap-3 rounded-xl p-6 text-left
+                 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
     >
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
           {label}
         </span>
         <Tooltip>
           <TooltipTrigger asChild>
             <span
-              className={`rounded-lg p-1.5 ${accent ?? "bg-indigo-500/15"}`}
+              className={`rounded-lg p-1.5 ${
+                accent ?? "bg-[#D4AF37]/15"
+              }`}
             >
               <Icon
-                className={`w-3.5 h-3.5 ${accent ? "text-white/70" : "text-indigo-400"}`}
+                className={`w-3.5 h-3.5 ${
+                  accent ? "text-white/70" : "text-[#D4AF37]"
+                }`}
               />
             </span>
           </TooltipTrigger>
@@ -207,12 +217,12 @@ function StatCard({
         {value}
       </div>
       {sub && <div className="text-[11px] text-white/55">{sub}</div>}
-      <ChevronRight className="absolute bottom-4 right-4 w-3.5 h-3.5 text-white/20 group-hover:text-white/50 transition-colors" />
-    </button>
+      <ChevronRight className="absolute bottom-4 right-4 w-3.5 h-3.5 text-white/20 group-hover:text-[#D4AF37]/50 transition-colors" />
+    </motion.button>
   );
 }
 
-// ─── Case Row ─────────────────────────────────────────────────────────────────
+// ─── Case Row ─────────────────────────────────────────────────────────────[...]
 function CaseRow({
   c,
   onClick,
@@ -232,14 +242,15 @@ function CaseRow({
   const pr = PRIORITY_STYLES[c.priority] ?? PRIORITY_STYLES["baja"];
 
   return (
-    <div
+    <motion.div
+      whileHover={{ x: 4 }}
       role="button"
       tabIndex={0}
       onClick={onClick}
-      onKeyDown={e => e.key === "Enter" && onClick()}
-      className="case-row group relative flex items-stretch gap-3 px-5 py-3.5 hover:bg-white/4 cursor-pointer
-                 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10
-                 border-b border-white/5 last:border-0 focus-visible:outline-none focus-visible:bg-white/4"
+      onKeyDown={(e) => e.key === "Enter" && onClick()}
+      className="case-row group relative flex items-stretch gap-3 px-5 py-3.5 hover:glass-effect cursor-pointer
+                 transition-all duration-200 hover:shadow-lg hover:shadow-[#D4AF37]/5
+                 border-b border-white/5 last:border-0 focus-visible:outline-none focus-visible:glass-effect"
     >
       <PriorityStripe priority={c.priority} />
 
@@ -274,14 +285,14 @@ function CaseRow({
               { day: "2-digit", month: "short" }
             )}
           </span>
-          <ChevronRight className="w-3.5 h-3.5 text-white/20 group-hover:text-white/60 transition-colors" />
+          <ChevronRight className="w-3.5 h-3.5 text-white/20 group-hover:text-[#D4AF37]/60 transition-colors" />
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-// ─── Section Header ───────────────────────────────────────────────────────────
+// ─── Section Header ───────────────────────────────────────────────────────[...]
 function SectionHeader({
   title,
   action,
@@ -299,7 +310,7 @@ function SectionHeader({
       {action && (
         <button
           onClick={onAction}
-          className="flex items-center gap-1 text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+          className="flex items-center gap-1 text-[11px] font-medium text-[#D4AF37] hover:text-[#D4AF37]/80 transition-colors"
         >
           {action}
           <ArrowRight className="w-3 h-3" />
@@ -338,10 +349,10 @@ function CasesByTypeChart({
 
   const total = Object.values(byType).reduce((a, b) => a + b, 0) || 1;
   const colors = [
-    "#6366f1",
-    "#f43f5e",
-    "#f59e0b",
-    "#10b981",
+    "#D4AF37",
+    "#6B4AA3",
+    "#FF5547",
+    "#FF7A45",
     "#8b5cf6",
     "#06b6d4",
     "#ec4899",
@@ -390,7 +401,7 @@ function CasesByTypeChart({
   );
 }
 
-// ─── Skeleton Loaders ──────────────────────────────────────────────────────────
+// ─── Skeleton Loaders ───────────────────────────────────────────────────────[...]
 function DashboardSkeleton() {
   return (
     <div className="space-y-8">
@@ -406,7 +417,7 @@ function DashboardSkeleton() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="flex flex-col gap-3 rounded-xl border border-white/8 bg-white/4 p-4"
+            className="glass-effect flex flex-col gap-3 rounded-xl p-4"
           >
             <Skeleton className="h-3 w-20 bg-white/10" />
             <Skeleton className="h-8 w-16 bg-white/10" />
@@ -415,7 +426,7 @@ function DashboardSkeleton() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 rounded-xl border border-white/8 bg-white/3 overflow-hidden">
+        <div className="lg:col-span-2 glass-effect rounded-xl overflow-hidden">
           <div className="px-5 pt-5 pb-4 border-b border-white/6">
             <Skeleton className="h-3 w-24 bg-white/10" />
           </div>
@@ -428,11 +439,11 @@ function DashboardSkeleton() {
           </div>
         </div>
         <div className="space-y-4">
-          <div className="rounded-xl border border-white/8 bg-white/3 p-5">
+          <div className="glass-effect rounded-xl p-5">
             <Skeleton className="h-3 w-16 bg-white/10 mb-4" />
             <Skeleton className="h-20 w-full bg-white/10" />
           </div>
-          <div className="rounded-xl border border-white/8 bg-white/3 p-5">
+          <div className="glass-effect rounded-xl p-5">
             <Skeleton className="h-3 w-16 bg-white/10 mb-4" />
             <div className="space-y-2">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -446,7 +457,7 @@ function DashboardSkeleton() {
   );
 }
 
-// ─── Main Dashboard ───────────────────────────────────────────────────────────
+// ─── Main Dashboard ───────────────────────────────────────────────────────[...]
 export default function Dashboard() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
@@ -466,9 +477,9 @@ export default function Dashboard() {
     staleTime: 30000,
   });
 
-  const activeCases = cases.filter(c => c.status === "activo");
+  const activeCases = cases.filter((c) => c.status === "activo");
   const highPriority = cases.filter(
-    c => c.priority === "alta" && c.status === "activo"
+    (c) => c.priority === "alta" && c.status === "activo"
   );
   const recentCases = [...cases]
     .sort(
@@ -520,7 +531,7 @@ export default function Dashboard() {
   if (casesLoading) {
     return (
       <DashboardLayout>
-        <div className="min-h-screen bg-[#0e0e11]">
+        <div className="min-h-screen bg-gradient-to-br from-[#0F2942] via-[#0A1118] to-[#0F2942]">
           <div className="relative mx-auto max-w-5xl px-4 py-8">
             <DashboardSkeleton />
           </div>
@@ -532,7 +543,7 @@ export default function Dashboard() {
   if (casesError) {
     return (
       <DashboardLayout>
-        <div className="min-h-screen bg-[#0e0e11] flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-[#0F2942] via-[#0A1118] to-[#0F2942] flex items-center justify-center">
           <div className="text-center p-8">
             <AlertTriangle className="w-12 h-12 text-rose-400 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-white mb-2">
@@ -548,14 +559,32 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      {/* ── Page canvas ─────────────────────────────────────────────────────── */}
-      <div className="min-h-screen bg-[#0e0e11] text-white">
+      {/* ── Page canvas ─────────────────────────────────────────────────────── [...]
+      <div className="min-h-screen bg-gradient-to-br from-[#0F2942] via-[#0A1118] to-[#0F2942] text-white">
+        {/* Animated background elements */}
+        <motion.div
+          className="pointer-events-none fixed top-20 right-20 h-72 w-72 rounded-full bg-[#6B4AA3]/5 blur-3xl"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.2, 0.3, 0.2],
+          }}
+          transition={{ duration: 8, repeat: Infinity }}
+        />
+        <motion.div
+          className="pointer-events-none fixed bottom-20 left-20 h-72 w-72 rounded-full bg-[#D4AF37]/5 blur-3xl"
+          animate={{
+            scale: [1.2, 1, 1.2],
+            opacity: [0.2, 0.3, 0.2],
+          }}
+          transition={{ duration: 8, repeat: Infinity }}
+        />
+
         {/* Subtle grid texture */}
         <div
           className="pointer-events-none fixed inset-0 opacity-[0.025]"
           style={{
             backgroundImage:
-              "linear-gradient(rgba(255,255,255,.6) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.6) 1px,transparent 1px)",
+              "linear-gradient(rgba(212,175,55,.3) 1px,transparent 1px),linear-gradient(90deg,rgba(212,175,55,.3) 1px,transparent 1px)",
             backgroundSize: "40px 40px",
           }}
         />
@@ -564,13 +593,17 @@ export default function Dashboard() {
           ref={dashboardRef}
           className="relative mx-auto max-w-5xl px-4 py-8 space-y-8"
         >
-          {/* ── Header ────────────────────────────────────────────────────────── */}
-          <div className="flex items-start justify-between gap-4">
+          {/* ── Header ───────────────────────────────────────────────────────[...]
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-start justify-between gap-4"
+          >
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55 mb-1 capitalize">
                 {today}
               </p>
-              <h1 className="text-2xl font-bold tracking-tight">
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
                 {user?.name?.split(" ")[0] ?? "Perito"}
                 <span className="text-white/55">,</span>{" "}
                 <span className="text-white/55 font-normal">
@@ -578,21 +611,25 @@ export default function Dashboard() {
                 </span>
               </h1>
             </div>
-            <Button
+            <FloatingButton
               onClick={() => navigate("/casos/nuevo")}
-              className="shrink-0 bg-indigo-600 hover:bg-indigo-500 border-0 text-white font-semibold gap-2 shadow-lg shadow-indigo-900/40 btn-glow"
+              variant="primary"
+              size="md"
+              className="shrink-0 gap-2 shadow-lg shadow-[#D4AF37]/20"
             >
               <Plus className="w-4 h-4" />
               Nuevo caso
-            </Button>
-          </div>
+            </FloatingButton>
+          </motion.div>
 
           {/* ── Alert banner — high priority cases ─────────────────────────── */}
           {highPriority.length > 0 && (
-            <button
+            <motion.button
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
               onClick={() => navigate("/casos?priority=alta")}
               className="section-fade w-full flex items-center gap-3 rounded-xl border border-rose-500/25 bg-rose-500/8 px-5 py-3.5
-                         hover:bg-rose-500/12 transition-colors text-left group"
+                         hover:bg-rose-500/12 transition-colors text-left group glass-effect"
             >
               <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
               <span className="flex-1 text-sm font-medium text-rose-300">
@@ -600,7 +637,7 @@ export default function Dashboard() {
                 de prioridad alta requieren atención
               </span>
               <ChevronRight className="w-4 h-4 text-rose-400/50 group-hover:text-rose-400 transition-colors" />
-            </button>
+            </motion.button>
           )}
 
           {/* ── Stat cards ─────────────────────────────────────────────────── */}
@@ -647,7 +684,7 @@ export default function Dashboard() {
           {/* ── Main grid ──────────────────────────────────────────────────── */}
           <div className="grid lg:grid-cols-3 gap-5">
             {/* Casos recientes — 2/3 width */}
-            <div className="section-fade lg:col-span-2 rounded-xl border border-white/8 bg-white/3 overflow-hidden">
+            <GlassCard className="lg:col-span-2 !p-0 overflow-hidden">
               <div className="px-5 pt-5 pb-4 border-b border-white/6">
                 <SectionHeader
                   title="Casos recientes"
@@ -659,7 +696,7 @@ export default function Dashboard() {
               {casesLoading ? (
                 <div className="flex items-center justify-center py-16">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 rounded-full border-2 border-indigo-500/40 border-t-indigo-400 animate-spin" />
+                    <div className="w-8 h-8 rounded-full border-2 border-[#D4AF37]/40 border-t-[#D4AF37] animate-spin" />
                     <p className="text-sm text-white/55">Cargando casos…</p>
                   </div>
                 </div>
@@ -670,8 +707,8 @@ export default function Dashboard() {
                     <FolderOpen className="w-24 h-24 -ml-8 mt-16" />
                     <FileSearch className="w-20 h-20 -ml-4 -mt-12" />
                   </div>
-                  <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                    <FolderOpen className="w-7 h-7 text-indigo-400" />
+                  <div className="w-14 h-14 rounded-2xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center">
+                    <FolderOpen className="w-7 h-7 text-[#D4AF37]" />
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-medium text-white/70">
@@ -681,18 +718,18 @@ export default function Dashboard() {
                       Crea tu primer expediente forense
                     </p>
                   </div>
-                  <Button
-                    size="sm"
+                  <FloatingButton
                     onClick={() => navigate("/casos/nuevo")}
-                    className="bg-indigo-600 hover:bg-indigo-500 border-0 text-white gap-1.5 shadow-lg shadow-indigo-900/40"
+                    variant="primary"
+                    size="sm"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Crear caso
-                  </Button>
+                  </FloatingButton>
                 </div>
               ) : (
                 <div>
-                  {recentCases.map(c => (
+                  {recentCases.map((c) => (
                     <CaseRow
                       key={c.id}
                       c={c}
@@ -701,20 +738,20 @@ export default function Dashboard() {
                   ))}
                 </div>
               )}
-            </div>
+            </GlassCard>
 
             {/* Right column — 1/3 width */}
             <div className="space-y-4">
               {/* Distribución de casos por tipo */}
               {cases.length > 0 && (
-                <div className="section-fade rounded-xl border border-white/8 bg-white/3 p-5">
+                <GlassCard className="section-fade">
                   <SectionHeader title="Casos por tipo" />
                   <CasesByTypeChart cases={cases} />
-                </div>
+                </GlassCard>
               )}
 
               {/* Capacidad */}
-              <div className="section-fade rounded-xl border border-white/8 bg-white/3 p-5">
+              <GlassCard className="section-fade">
                 <SectionHeader title="Capacidad" />
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
@@ -749,15 +786,19 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </GlassCard>
 
               {/* Upgrade card — solo plan free */}
               {sub?.plan === "free" && (
-                <div className="section-fade rounded-xl border border-indigo-500/20 bg-indigo-600/8 p-5">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="section-fade glass-effect rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/8 p-5"
+                >
                   <div className="flex items-center gap-2 mb-3">
-                    <Zap className="w-3.5 h-3.5 text-indigo-400" />
-                    <span className="text-xs font-semibold text-indigo-300 uppercase tracking-widest">
-                      Plan gratuito
+                    <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+                    <span className="text-xs font-semibold text-[#D4AF37] uppercase tracking-widest">
+                      Plan premium
                     </span>
                   </div>
                   <p className="text-sm text-white/55 mb-4 leading-relaxed">
@@ -767,25 +808,27 @@ export default function Dashboard() {
                     </span>{" "}
                     este mes. Actualiza para acceso ilimitado.
                   </p>
-                  <Button
+                  <FloatingButton
                     onClick={() => navigate("/suscripcion")}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 border-0 text-white font-semibold gap-2"
+                    variant="primary"
+                    size="md"
+                    className="w-full gap-2"
                   >
                     <TrendingUp className="w-3.5 h-3.5" />
                     Actualizar a Premium
-                  </Button>
-                </div>
+                  </FloatingButton>
+                </motion.div>
               )}
 
               {/* Sistema — compacto, solo info crítica */}
-              <div className="section-fade rounded-xl border border-white/8 bg-white/3 p-5">
+              <GlassCard className="section-fade">
                 <SectionHeader title="Sistema" />
                 <div className="space-y-2.5">
                   {[
                     { label: "Motor IA Forense", ok: true },
                     { label: "Cifrado AES-256", ok: true },
                     { label: "Almacenamiento S3", ok: true },
-                  ].map(item => (
+                  ].map((item) => (
                     <div
                       key={item.label}
                       className="flex items-center justify-between"
@@ -801,7 +844,9 @@ export default function Dashboard() {
                         </span>
                       </div>
                       <span
-                        className={`text-[10px] font-semibold ${item.ok ? "text-emerald-400" : "text-rose-400"}`}
+                        className={`text-[10px] font-semibold ${
+                          item.ok ? "text-emerald-400" : "text-rose-400"
+                        }`}
                       >
                         {item.ok ? "Operativo" : "Error"}
                       </span>
@@ -812,7 +857,7 @@ export default function Dashboard() {
                     Sincronizado ahora
                   </div>
                 </div>
-              </div>
+              </GlassCard>
             </div>
           </div>
         </div>

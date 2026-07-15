@@ -6,6 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { GlassCard } from "@/components/MotionComponents/GlassCard";
+import { motion } from "framer-motion";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -110,7 +112,7 @@ function EvidenceList({
       utils.evidence.listByCase.invalidate({ caseId });
       toast.success("Evidencia eliminada");
     },
-    onError: err => toast.error(err.message),
+    onError: (err) => toast.error(err.message),
   });
   const toggleKey = trpc.evidence.update.useMutation({
     onSuccess: () => utils.evidence.listByCase.invalidate({ caseId }),
@@ -169,45 +171,55 @@ function EvidenceList({
 
   return (
     <div className="space-y-2">
-      {evidenceList.map(e => (
-        <div
+      {evidenceList.map((e, idx) => (
+        <motion.div
           key={e.id}
-          className="rounded-lg border border-border overflow-hidden"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: idx * 0.05 }}
+          className="rounded-lg border border-border overflow-hidden glass-effect"
         >
           <div
-            className="flex items-center gap-3 p-3 bg-background hover:border-primary/20 transition-colors group cursor-pointer"
+            className="flex items-center gap-3 p-3 bg-background/50 hover:border-[#D4AF37]/20 transition-all group cursor-pointer"
             onClick={() =>
               isImage(e.mimeType ?? "")
                 ? setExpandedImageId(expandedImageId === e.id ? null : e.id)
                 : undefined
             }
           >
-            <div
-              className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${typeConfig[e.evidenceType ?? "otro"]?.bg ?? "bg-gray-500/10"}`}
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                typeConfig[e.evidenceType ?? "otro"]?.bg ?? "bg-gray-500/10"
+              }`}
             >
               {(() => {
                 const evidenceType = e.evidenceType ?? "otro";
                 const Icon = typeConfig[evidenceType]?.icon ?? File;
                 return (
                   <Icon
-                    className={`w-4 h-4 ${typeConfig[evidenceType]?.color ?? "text-gray-400"}`}
+                    className={`w-4 h-4 ${
+                      typeConfig[evidenceType]?.color ?? "text-gray-400"
+                    }`}
                   />
                 );
               })()}
-            </div>
+            </motion.div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-semibold truncate text-foreground">
                   {e.originalName}
                 </p>
                 {e.isKeyEvidence && (
-                  <Badge className="text-[10px] px-2 py-0.5 h-5 bg-amber-500/10 text-amber-400 border-amber-500/20 font-medium">
+                  <Badge className="text-[10px] px-2 py-0.5 h-5 bg-[#D4AF37]/10 text-[#D4AF37] border-[#D4AF37]/20 font-medium">
                     Clave
                   </Badge>
                 )}
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="capitalize font-medium">{e.evidenceType}</span>
+                <span className="capitalize font-medium">
+                  {e.evidenceType}
+                </span>
                 <span className="text-border">·</span>
                 <span>{(e.sizeBytes / 1024).toFixed(1)} KB</span>
                 <span className="text-border">·</span>
@@ -222,14 +234,14 @@ function EvidenceList({
             </div>
             <div
               className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={ev => ev.stopPropagation()}
+              onClick={(ev) => ev.stopPropagation()}
             >
               {isImage(e.mimeType ?? "") && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 px-2 text-xs text-primary hover:text-primary"
-                  onClick={ev => {
+                  className="h-7 px-2 text-xs text-[#D4AF37] hover:text-[#D4AF37]/80"
+                  onClick={(ev) => {
                     ev.stopPropagation();
                     setExpandedImageId(expandedImageId === e.id ? null : e.id);
                   }}
@@ -242,7 +254,7 @@ function EvidenceList({
                 variant="ghost"
                 size="sm"
                 className="h-7 px-2 text-xs"
-                onClick={ev => {
+                onClick={(ev) => {
                   ev.stopPropagation();
                   toggleKey.mutate({
                     id: e.id,
@@ -256,7 +268,7 @@ function EvidenceList({
                 href={e.s3Url}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={ev => ev.stopPropagation()}
+                onClick={(ev) => ev.stopPropagation()}
               >
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
                   <Download className="w-3.5 h-3.5" />
@@ -268,12 +280,12 @@ function EvidenceList({
                     variant="ghost"
                     size="sm"
                     className="h-7 w-7 p-0 hover:text-destructive"
-                    onClick={ev => ev.stopPropagation()}
+                    onClick={(ev) => ev.stopPropagation()}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent onClick={ev => ev.stopPropagation()}>
+                <AlertDialogContent onClick={(ev) => ev.stopPropagation()}>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Eliminar evidencia</AlertDialogTitle>
                     <AlertDialogDescription>
@@ -296,7 +308,12 @@ function EvidenceList({
           </div>
           {/* Image analysis panel - expandable */}
           {isImage(e.mimeType ?? "") && expandedImageId === e.id && (
-            <div className="border-t border-border bg-muted/10 p-4">
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="border-t border-border bg-muted/10 p-4"
+            >
               <ImageAnalysisPanel
                 evidenceId={e.id}
                 caseId={caseId}
@@ -305,9 +322,9 @@ function EvidenceList({
                 mimeType={e.mimeType ?? "application/octet-stream"}
                 caseContext={caseContext}
               />
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       ))}
     </div>
   );
@@ -326,7 +343,7 @@ function AnalysisList({ caseId }: { caseId: number }) {
   const utils = trpc.useUtils();
 
   const runAnalysis = trpc.analyses.run.useMutation({
-    onSuccess: data => {
+    onSuccess: (data) => {
       toast.success("Análisis forense iniciado. Esto puede tomar 1-2 minutos.");
       // Poll for completion
       const interval = setInterval(async () => {
@@ -342,11 +359,11 @@ function AnalysisList({ caseId }: { caseId: number }) {
         }
       }, 5000);
     },
-    onError: err => toast.error(err.message),
+    onError: (err) => toast.error(err.message),
   });
 
   const runContradiction = trpc.analyses.runContradiction.useMutation({
-    onSuccess: data => {
+    onSuccess: (data) => {
       toast.success(
         "Análisis de contradicciones iniciado. Esto puede tomar 1-2 minutos."
       );
@@ -364,15 +381,15 @@ function AnalysisList({ caseId }: { caseId: number }) {
         }
       }, 5000);
     },
-    onError: err => toast.error(err.message),
+    onError: (err) => toast.error(err.message),
   });
 
   const generateReport = trpc.reports.generate.useMutation({
-    onSuccess: data => {
+    onSuccess: (data) => {
       toast.success("Reporte generado");
       window.open(data.url, "_blank");
     },
-    onError: err => toast.error(err.message),
+    onError: (err) => toast.error(err.message),
   });
 
   if (isLoading)
@@ -384,7 +401,11 @@ function AnalysisList({ caseId }: { caseId: number }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end gap-2">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex justify-end gap-2"
+      >
         <Button
           size="sm"
           variant="outline"
@@ -420,7 +441,7 @@ function AnalysisList({ caseId }: { caseId: number }) {
             </>
           )}
         </Button>
-      </div>
+      </motion.div>
 
       {analysesList.length === 0 ? (
         <div className="py-12 text-center">
@@ -433,140 +454,152 @@ function AnalysisList({ caseId }: { caseId: number }) {
           </p>
         </div>
       ) : (
-        analysesList.map(a => {
-          const statusCfg = analysisStatusConfig[a.status];
-          const StatusIcon = statusCfg.icon;
-          const keyFindingsRaw = a.keyFindings;
-          const keyFindings =
-            typeof keyFindingsRaw === "string"
-              ? JSON.parse(keyFindingsRaw || "[]")
-              : (keyFindingsRaw ?? []);
-          const criticalCount = keyFindings.filter(
-            (f: any) => f.severity === "alta"
-          ).length;
+        <div className="space-y-3">
+          {analysesList.map((a, idx) => {
+            const statusCfg = analysisStatusConfig[a.status];
+            const StatusIcon = statusCfg.icon;
+            const keyFindingsRaw = a.keyFindings;
+            const keyFindings =
+              typeof keyFindingsRaw === "string"
+                ? JSON.parse(keyFindingsRaw || "[]")
+                : (keyFindingsRaw ?? []);
+            const criticalCount = keyFindings.filter(
+              (f: any) => f.severity === "alta"
+            ).length;
 
-          return (
-            <Card
-              key={a.id}
-              className="bg-card/50 border-border/50 hover:border-primary/30 transition-all duration-300"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                          a.status === "completado"
-                            ? "bg-emerald-500/10"
-                            : a.status === "procesando"
-                              ? "bg-amber-500/10"
-                              : a.status === "error"
-                                ? "bg-red-500/10"
-                                : "bg-slate-500/10"
-                        }`}
-                      >
-                        <StatusIcon
-                          className={`w-4 h-4 ${
+            return (
+              <motion.div
+                key={a.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+              >
+                <GlassCard className="!p-4" hoverEffect="lift">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <motion.div
+                          animate={{
+                            scale: a.status === "procesando" ? [1, 1.1, 1] : 1,
+                          }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                             a.status === "completado"
-                              ? "text-emerald-400"
+                              ? "bg-emerald-500/10"
                               : a.status === "procesando"
-                                ? "text-amber-400"
+                                ? "bg-[#D4AF37]/10"
                                 : a.status === "error"
-                                  ? "text-red-400"
-                                  : "text-slate-400"
-                          } ${a.status === "procesando" ? "animate-spin" : ""}`}
-                        />
-                      </div>
-                      <h4 className="font-semibold text-sm truncate text-foreground">
-                        {a.title}
-                      </h4>
-                    </div>
-                    <div className="flex items-center gap-2 ml-10">
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(a.createdAt).toLocaleDateString("es-MX", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                      {a.processingTimeMs && (
-                        <span className="text-xs text-muted-foreground">
-                          · {(a.processingTimeMs / 1000).toFixed(1)}s
-                        </span>
-                      )}
-                      {(a.evidenceCount ?? 0) > 0 && (
-                        <Badge
-                          variant="secondary"
-                          className="text-[10px] h-5 px-2 bg-secondary/50"
+                                  ? "bg-red-500/10"
+                                  : "bg-slate-500/10"
+                          }`}
                         >
-                          {a.evidenceCount} evidencia
-                          {(a.evidenceCount ?? 0) !== 1 ? "s" : ""}
-                        </Badge>
+                          <StatusIcon
+                            className={`w-4 h-4 ${
+                              a.status === "completado"
+                                ? "text-emerald-400"
+                                : a.status === "procesando"
+                                  ? "text-[#D4AF37]"
+                                  : a.status === "error"
+                                    ? "text-red-400"
+                                    : "text-slate-400"
+                            } ${a.status === "procesando" ? "animate-spin" : ""}`}
+                          />
+                        </motion.div>
+                        <h4 className="font-semibold text-sm truncate text-foreground">
+                          {a.title}
+                        </h4>
+                      </div>
+                      <div className="flex items-center gap-2 ml-10">
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(a.createdAt).toLocaleDateString("es-MX", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                        {a.processingTimeMs && (
+                          <span className="text-xs text-muted-foreground">
+                            · {(a.processingTimeMs / 1000).toFixed(1)}s
+                          </span>
+                        )}
+                        {(a.evidenceCount ?? 0) > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] h-5 px-2 bg-[#D4AF37]/10 text-[#D4AF37] border-[#D4AF37]/20"
+                          >
+                            {a.evidenceCount} evidencia
+                            {(a.evidenceCount ?? 0) !== 1 ? "s" : ""}
+                          </Badge>
+                        )}
+                      </div>
+                      {a.status === "completado" && (
+                        <div className="flex items-center gap-3 mt-3 ml-10">
+                          {criticalCount > 0 && (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                              <AlertTriangle className="w-3 h-3" />
+                              {criticalCount} crítico
+                              {criticalCount !== 1 ? "s" : ""}
+                            </span>
+                          )}
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {(() => {
+                              const events =
+                                typeof a.timelineEvents === "string"
+                                  ? JSON.parse(a.timelineEvents || "[]")
+                                  : (a.timelineEvents ?? []);
+                              return events.length;
+                            })()}{" "}
+                            eventos
+                          </span>
+                        </div>
                       )}
                     </div>
                     {a.status === "completado" && (
-                      <div className="flex items-center gap-3 mt-3 ml-10">
-                        {criticalCount > 0 && (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-                            <AlertTriangle className="w-3 h-3" />
-                            {criticalCount} crítico
-                            {criticalCount !== 1 ? "s" : ""}
-                          </span>
-                        )}
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {(() => {
-                            const events =
-                              typeof a.timelineEvents === "string"
-                                ? JSON.parse(a.timelineEvents || "[]")
-                                : (a.timelineEvents ?? []);
-                            return events.length;
-                          })()}{" "}
-                          eventos
-                        </span>
+                      <div className="flex gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs"
+                          onClick={() => navigate(`/analisis/${a.id}`)}
+                        >
+                          <FileSearch className="w-3.5 h-3.5 mr-1" />
+                          Ver análisis
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() =>
+                            generateReport.mutate({ caseId, analysisId: a.id })
+                          }
+                          disabled={generateReport.isPending}
+                        >
+                          {generateReport.isPending ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <>
+                              <Download className="w-3.5 h-3.5 mr-1" />
+                              PDF
+                            </>
+                          )}
+                        </Button>
                       </div>
                     )}
+                    {a.status === "procesando" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => refetch()}
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
-                  {a.status === "completado" && (
-                    <div className="flex gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 text-xs"
-                        onClick={() => navigate(`/analisis/${a.id}`)}
-                      >
-                        <FileSearch className="w-3.5 h-3.5 mr-1" />
-                        Ver análisis
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="h-8 text-xs"
-                        onClick={() =>
-                          generateReport.mutate({ caseId, analysisId: a.id })
-                        }
-                        disabled={generateReport.isPending}
-                      >
-                        {generateReport.isPending ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <>
-                            <Download className="w-3.5 h-3.5 mr-1" />
-                            PDF
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                  {a.status === "procesando" && (
-                    <Button size="sm" variant="ghost" onClick={() => refetch()}>
-                      <RefreshCw className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })
+                </GlassCard>
+              </motion.div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -590,7 +623,7 @@ export default function CaseDetail() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#D4AF37]" />
         </div>
       </DashboardLayout>
     );
@@ -615,7 +648,11 @@ export default function CaseDetail() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-6"
+      >
         <Breadcrumbs
           segments={[
             { label: "Casos", href: "/casos", icon: FolderOpen },
@@ -625,31 +662,39 @@ export default function CaseDetail() {
         />
         {/* Header */}
         <div className="flex items-start gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-10 w-10 p-0 mt-0.5 border border-border hover:border-primary/30 hover:bg-primary/5"
-            onClick={() => navigate("/casos")}
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-10 w-10 p-0 mt-0.5 border border-border hover:border-[#D4AF37]/30 hover:bg-[#D4AF37]/5"
+              onClick={() => navigate("/casos")}
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </motion.div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap mb-2">
-              <h1 className="text-2xl font-bold tracking-tight">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center gap-3 flex-wrap mb-2"
+            >
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
                 {caseData.title}
               </h1>
               <Badge
                 variant="outline"
-                className={`text-xs font-medium px-3 py-1 ${statusConfig[caseData.status]?.className}`}
+                className={`text-xs font-medium px-3 py-1 ${
+                  statusConfig[caseData.status]?.className
+                }`}
               >
                 {statusConfig[caseData.status]?.label}
               </Badge>
               {caseData.caseNumber && (
-                <span className="text-sm font-mono text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded">
+                <span className="text-sm font-mono text-muted-foreground bg-[#D4AF37]/10 px-2 py-0.5 rounded border border-[#D4AF37]/20">
                   #{caseData.caseNumber}
                 </span>
               )}
-            </div>
+            </motion.div>
             <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground flex-wrap">
               <span className="capitalize">{caseData.caseType}</span>
               {caseData.clientName && (
@@ -662,82 +707,89 @@ export default function CaseDetail() {
               </span>
             </div>
           </div>
-          <Button size="sm" onClick={() => setShowUploader(!showUploader)}>
-            <Upload className="w-4 h-4 mr-2" />
-            Cargar evidencia
-          </Button>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              size="sm"
+              onClick={() => setShowUploader(!showUploader)}
+              className="gap-2 bg-gradient-to-r from-[#D4AF37] to-[#6B4AA3] text-white border-0"
+            >
+              <Upload className="w-4 h-4" />
+              Cargar evidencia
+            </Button>
+          </motion.div>
         </div>
 
         {/* Case metadata */}
         {caseData.description && (
-          <Card className="bg-card border-border">
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">
-                {caseData.description}
-              </p>
-            </CardContent>
-          </Card>
+          <GlassCard className="!p-4">
+            <p className="text-sm text-muted-foreground">
+              {caseData.description}
+            </p>
+          </GlassCard>
         )}
 
         {/* Evidence uploader */}
         {showUploader && (
-          <EvidenceUploader
-            caseId={caseId}
-            onUploaded={() => {
-              utils.evidence.listByCase.invalidate({ caseId });
-              setShowUploader(false);
-              toast.success("Evidencia cargada exitosamente");
-            }}
-            onClose={() => setShowUploader(false)}
-          />
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <EvidenceUploader
+              caseId={caseId}
+              onUploaded={() => {
+                utils.evidence.listByCase.invalidate({ caseId });
+                setShowUploader(false);
+                toast.success("Evidencia cargada exitosamente");
+              }}
+              onClose={() => setShowUploader(false)}
+            />
+          </motion.div>
         )}
 
         {/* Tabs */}
-        <Tabs defaultValue="evidencia">
-          <TabsList className="bg-card border border-border">
-            <TabsTrigger
-              value="evidencia"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <FileSearch className="w-4 h-4 mr-2" />
-              Evidencia
-            </TabsTrigger>
-            <TabsTrigger
-              value="analisis"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <Brain className="w-4 h-4 mr-2" />
-              Análisis IA
-            </TabsTrigger>
-            <TabsTrigger
-              value="reportes"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Reportes
-            </TabsTrigger>
-          </TabsList>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <Tabs defaultValue="evidencia" className="w-full">
+            <TabsList className="bg-card/50 border border-border glass-effect">
+              <TabsTrigger
+                value="evidencia"
+                className="data-[state=active]:bg-[#D4AF37]/20 data-[state=active]:text-[#D4AF37] data-[state=active]:border-b-2 data-[state=active]:border-[#D4AF37]"
+              >
+                <FileSearch className="w-4 h-4 mr-2" />
+                Evidencia
+              </TabsTrigger>
+              <TabsTrigger
+                value="analisis"
+                className="data-[state=active]:bg-[#D4AF37]/20 data-[state=active]:text-[#D4AF37] data-[state=active]:border-b-2 data-[state=active]:border-[#D4AF37]"
+              >
+                <Brain className="w-4 h-4 mr-2" />
+                Análisis IA
+              </TabsTrigger>
+              <TabsTrigger
+                value="reportes"
+                className="data-[state=active]:bg-[#D4AF37]/20 data-[state=active]:text-[#D4AF37] data-[state=active]:border-b-2 data-[state=active]:border-[#D4AF37]"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Reportes
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="evidencia" className="mt-4">
-            <div className="space-y-3">
-              <Card className="bg-card border-border">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold">
+            <TabsContent value="evidencia" className="mt-4">
+              <div className="space-y-3">
+                <GlassCard className="!p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-white">
                       Evidencia Digital
-                    </CardTitle>
+                    </h3>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-7 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                      className="h-7 text-xs gap-1.5 border-[#D4AF37]/30 text-[#D4AF37] hover:bg-[#D4AF37]/10"
                       onClick={() => navigate(`/casos/${caseId}/compare`)}
                     >
                       <GitCompare className="w-3.5 h-3.5" />
                       Comparar imágenes
                     </Button>
                   </div>
-                </CardHeader>
-                <CardContent>
                   <EvidenceList
                     caseId={caseId}
                     caseContext={
@@ -746,29 +798,25 @@ export default function CaseDetail() {
                         : undefined
                     }
                   />
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                </GlassCard>
+              </div>
+            </TabsContent>
 
-          <TabsContent value="analisis" className="mt-4">
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold">
+            <TabsContent value="analisis" className="mt-4">
+              <GlassCard className="!p-5">
+                <h3 className="text-sm font-semibold text-white mb-4">
                   Análisis Forense con IA
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </h3>
                 <AnalysisList caseId={caseId} />
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </GlassCard>
+            </TabsContent>
 
-          <TabsContent value="reportes" className="mt-4">
-            <ReportsList caseId={caseId} />
-          </TabsContent>
-        </Tabs>
-      </div>
+            <TabsContent value="reportes" className="mt-4">
+              <ReportsList caseId={caseId} />
+            </TabsContent>
+          </Tabs>
+        </motion.div>
+      </motion.div>
     </DashboardLayout>
   );
 }
@@ -785,52 +833,55 @@ function ReportsList({ caseId }: { caseId: number }) {
     );
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold">
-          Reportes Generados
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {reportsList.length === 0 ? (
-          <div className="py-12 text-center">
-            <FileText className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm">
-              No hay reportes generados
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Completa un análisis y genera el reporte PDF desde la pestaña
-              "Análisis IA"
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {reportsList.map(r => (
-              <div
-                key={r.id}
-                className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border"
-              >
-                <FileText className="w-5 h-5 text-primary shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{r.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(r.createdAt).toLocaleDateString("es-MX")} ·{" "}
-                    {r.format.toUpperCase()}
-                  </p>
-                </div>
-                {r.s3Url && r.status === "listo" && (
-                  <a href={r.s3Url} target="_blank" rel="noopener noreferrer">
-                    <Button size="sm" variant="outline" className="h-7 text-xs">
-                      <Download className="w-3.5 h-3.5 mr-1" />
-                      Descargar
-                    </Button>
-                  </a>
-                )}
+    <GlassCard className="!p-5">
+      <h3 className="text-sm font-semibold text-white mb-4">
+        Reportes Generados
+      </h3>
+      {reportsList.length === 0 ? (
+        <div className="py-12 text-center">
+          <FileText className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-muted-foreground text-sm">
+            No hay reportes generados
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Completa un análisis y genera el reporte PDF desde la pestaña
+            "Análisis IA"
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {reportsList.map((r, idx) => (
+            <motion.div
+              key={r.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: idx * 0.05 }}
+              className="flex items-center gap-3 p-3 bg-background/50 rounded-lg border border-border glass-effect hover:border-[#D4AF37]/20 transition-all"
+            >
+              <FileText className="w-5 h-5 text-[#D4AF37] shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{r.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(r.createdAt).toLocaleDateString("es-MX")} ·{" "}
+                  {r.format.toUpperCase()}
+                </p>
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              {r.s3Url && r.status === "listo" && (
+                <a href={r.s3Url} target="_blank" rel="noopener noreferrer">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs border-[#D4AF37]/20 text-[#D4AF37] hover:bg-[#D4AF37]/10"
+                  >
+                    <Download className="w-3.5 h-3.5 mr-1" />
+                    Descargar
+                  </Button>
+                </a>
+              )}
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </GlassCard>
   );
 }
