@@ -12,8 +12,32 @@ import { trpc } from "@/lib/trpc";
 import { Shield } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { z } from "zod";
 
 type Mode = "login" | "register";
+
+const EMAIL_ERROR_MSG =
+  "El correo no es válido. Verifica que termine en un dominio válido (ej. @gmail.com), sin caracteres extra.";
+
+// Same validator the server uses, so the form rejects exactly what the API would.
+const emailSchema = z.string().email();
+
+// tRPC surfaces Zod input errors as a JSON array of issues in err.message;
+// turn those into a readable message instead of showing raw JSON.
+function friendlyError(message: string): string {
+  try {
+    const issues = JSON.parse(message) as Array<{ path?: unknown[] }>;
+    if (Array.isArray(issues)) {
+      if (issues.some(i => i.path?.[0] === "email")) return EMAIL_ERROR_MSG;
+      if (issues.some(i => i.path?.[0] === "password"))
+        return "La contraseña debe tener al menos 6 caracteres";
+      return "Los datos enviados no son válidos. Revisa el formulario.";
+    }
+  } catch {
+    // Not JSON — a plain server message, show as-is
+  }
+  return message;
+}
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -28,7 +52,7 @@ export default function Login() {
       window.location.href = "/dashboard";
     },
     onError: err => {
-      setError(err.message);
+      setError(friendlyError(err.message));
     },
   });
 
@@ -37,7 +61,7 @@ export default function Login() {
       window.location.href = "/dashboard";
     },
     onError: err => {
-      setError(err.message);
+      setError(friendlyError(err.message));
     },
   });
 
@@ -52,15 +76,24 @@ export default function Login() {
       return;
     }
 
+    if (!emailSchema.safeParse(email.trim()).success) {
+      setError(EMAIL_ERROR_MSG);
+      return;
+    }
+
     if (mode === "register" && password.length < 6) {
       setError("La contraseña debe tener al menos 6 caracteres");
       return;
     }
 
     if (mode === "login") {
-      loginMutation.mutate({ email, password });
+      loginMutation.mutate({ email: email.trim(), password });
     } else {
-      registerMutation.mutate({ email, password, name: name || undefined });
+      registerMutation.mutate({
+        email: email.trim(),
+        password,
+        name: name || undefined,
+      });
     }
   };
 

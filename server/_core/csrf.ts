@@ -14,20 +14,21 @@ export function getAllowedOrigins(): Set<string> {
     return new Set(["http://localhost:5173", "http://localhost:3000"]);
   }
 
-  // Production: must be explicitly configured
-  if (!raw) {
-    console.warn(
-      "[CSRF] ALLOWED_ORIGINS not set — blocking all cross-origin requests by default"
-    );
-    return new Set();
-  }
-
-  return new Set(
+  const origins = new Set(
     raw
       .split(",")
-      .map(o => o.trim().toLowerCase())
+      .map(o => o.trim().toLowerCase().replace(/\/+$/, ""))
       .filter(o => o.length > 0)
   );
+
+  // The app's own public domain on Railway is always a valid origin; without
+  // this, a missing ALLOWED_ORIGINS makes the app reject its own API calls.
+  const railwayDomain = process.env.RAILWAY_PUBLIC_DOMAIN?.trim().toLowerCase();
+  if (railwayDomain) {
+    origins.add(`https://${railwayDomain}`);
+  }
+
+  return origins;
 }
 
 export function isOriginAllowed(origin: string | undefined): boolean {
@@ -78,5 +79,13 @@ export function csrfProtection(
 export function registerCsrfProtection(app: Express) {
   // Scoped to /api for the same reason as CORS (see cors.ts): this guards
   // state-changing API requests, not the static app shell.
+  const allowed = Array.from(getAllowedOrigins());
+  if (allowed.length > 0) {
+    console.log(`[CSRF] Allowed origins: ${allowed.join(", ")}`);
+  } else {
+    console.warn(
+      "[CSRF] No allowed origins configured (set ALLOWED_ORIGINS) — all browser API requests will be blocked"
+    );
+  }
   app.use("/api", csrfProtection);
 }

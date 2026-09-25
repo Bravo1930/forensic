@@ -31,6 +31,9 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy build output
 COPY --from=build /app/dist ./dist
 
+# SQL migrations, applied by the server at startup (see runMigrations in server/db.ts)
+COPY drizzle ./drizzle
+
 # Create required directories
 RUN mkdir -p uploads data
 

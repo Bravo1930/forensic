@@ -16,6 +16,7 @@ import { registerCsrfProtection } from "./csrf";
 import { startWorker } from "./queue";
 import { handleAnalysisJob } from "./analysisWorker";
 import { validateEnvironment } from "./env";
+import { runMigrations } from "../db";
 
 // Validate environment configuration on startup
 validateEnvironment();
@@ -40,6 +41,8 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  await runMigrations();
+
   const app = express();
   const server = createServer(app);
 

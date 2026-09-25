@@ -25,9 +25,10 @@ let _client: ReturnType<typeof createClient> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const dbPath = process.env.DATABASE_URL.replace("sqlite:", "")
-        .replace("file:", "")
-        .replace(/^./, "./");
+      const dbPath = process.env.DATABASE_URL.replace("sqlite:", "").replace(
+        "file:",
+        ""
+      );
 
       _client = createClient({
         url: `file:${dbPath}`,
@@ -41,6 +42,25 @@ export async function getDb() {
     }
   }
   return _db;
+}
+
+/**
+ * Apply pending Drizzle migrations. Called once at startup so a fresh
+ * database (e.g. a new Railway volume) gets its schema without manual steps.
+ * Throws on failure: the server must not start against a broken schema.
+ */
+export async function runMigrations() {
+  const db = await getDb();
+  if (!db) {
+    console.warn(
+      "[Database] DATABASE_URL not set — skipping migrations (data will not be persisted)"
+    );
+    return;
+  }
+  const { migrate } = await import("drizzle-orm/libsql/migrator");
+  const migrationsFolder = process.env.MIGRATIONS_DIR ?? "./drizzle";
+  await migrate(db, { migrationsFolder });
+  console.log(`[Database] Migrations applied from ${migrationsFolder}`);
 }
 
 export async function getDbClient() {
@@ -83,6 +103,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
         updateSet[field] = user[field] ?? null;
       }
     });
+    if (user.passwordHash !== undefined) {
+      updateSet.passwordHash = user.passwordHash;
+    }
     if (user.lastSignedIn !== undefined) {
       updateSet.lastSignedIn = user.lastSignedIn;
     }
@@ -93,6 +116,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       openId: user.openId,
       name: user.name ?? null,
       email: user.email ?? null,
+      passwordHash: user.passwordHash ?? null,
       loginMethod: user.loginMethod ?? null,
       role: user.openId === ENV.ownerOpenId ? "admin" : "user",
       lastSignedIn: new Date(),
