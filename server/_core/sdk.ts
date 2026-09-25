@@ -280,10 +280,13 @@ class SDKServer {
       const jwtPayload = payload as Record<string, unknown>;
       const { openId, appId, name, jti } = jwtPayload;
 
+      // appId and name may legitimately be empty (VITE_APP_ID unset, or an
+      // email user who registered without a name); only identity fields
+      // must be present. The signature above already proves authenticity.
       if (
         !isNonEmptyString(openId) ||
-        !isNonEmptyString(appId) ||
-        !isNonEmptyString(name) ||
+        typeof appId !== "string" ||
+        typeof name !== "string" ||
         !isNonEmptyString(jti)
       ) {
         console.warn("[Auth] Session payload missing required fields");

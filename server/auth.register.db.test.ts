@@ -15,6 +15,7 @@ const { appRouter } = await import("./routers");
 
 function createPublicContext() {
   const cookies: string[] = [];
+  const values: Record<string, string> = {};
   const ctx: TrpcContext = {
     user: null,
     req: {
@@ -23,11 +24,14 @@ function createPublicContext() {
       ip: "127.0.0.1",
     } as TrpcContext["req"],
     res: {
-      cookie: (name: string) => cookies.push(name),
+      cookie: (name: string, value: string) => {
+        cookies.push(name);
+        values[name] = value;
+      },
       clearCookie: () => {},
     } as unknown as TrpcContext["res"],
   };
-  return { ctx, cookies };
+  return { ctx, cookies, values };
 }
 
 describe("register → login against a real database", () => {
@@ -67,6 +71,25 @@ describe("register → login against a real database", () => {
       .createCaller(ctx)
       .auth.login({ email, password });
     expect(user.email).toBe(email);
+  });
+
+  it("authenticates later requests with the session cookie, even without a name", async () => {
+    const { ctx, values } = createPublicContext();
+    await appRouter.createCaller(ctx).auth.login({ email, password });
+
+    const { sdk } = await import("./_core/sdk");
+    const nameless = "noname@example.com";
+    const reg = createPublicContext();
+    await appRouter
+      .createCaller(reg.ctx)
+      .auth.register({ email: nameless, password });
+
+    for (const cookie of [values.app_session_id, reg.values.app_session_id]) {
+      const user = await sdk.authenticateRequest({
+        headers: { cookie: `app_session_id=${cookie}` },
+      } as any);
+      expect(user.email).toMatch(/@/);
+    }
   });
 
   it("rejects a wrong password", async () => {
