@@ -76,5 +76,7 @@ export function csrfProtection(
 }
 
 export function registerCsrfProtection(app: Express) {
-  app.use(csrfProtection);
+  // Scoped to /api for the same reason as CORS (see cors.ts): this guards
+  // state-changing API requests, not the static app shell.
+  app.use("/api", csrfProtection);
 }

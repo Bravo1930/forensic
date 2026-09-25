@@ -61,5 +61,10 @@ export function corsMiddleware(
 }
 
 export function registerCors(app: Express) {
-  app.use(corsMiddleware);
+  // Scoped to /api: CORS/Origin checks protect cross-origin API calls that
+  // carry credentials. They must never run on the static app shell (HTML/JS/
+  // CSS) — the browser's own same-origin loads of those assets can still
+  // carry an Origin header (e.g. ES module scripts), and blocking that would
+  // make the site fail to load whenever ALLOWED_ORIGINS is unset/incomplete.
+  app.use("/api", corsMiddleware);
 }
