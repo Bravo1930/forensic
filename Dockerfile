@@ -6,7 +6,6 @@ RUN npm install -g pnpm@10.4.1
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
-COPY patches ./patches
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
@@ -27,7 +26,6 @@ ENV HOSTNAME="0.0.0.0"
 
 # Install production dependencies only
 COPY package.json pnpm-lock.yaml ./
-COPY patches ./patches
 RUN pnpm install --frozen-lockfile --prod
 
 # Copy build output
