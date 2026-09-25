@@ -226,8 +226,8 @@ function GraphSVG({
   const prevNodesRef = useRef<GraphNode[]>([]);
 
   // Zoom/Pan state
-  let isPanning = false;
-  let startPoint = { x: 0, y: 0 };
+  const isPanningRef = useRef(false);
+  const startPointRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     if (!gRef.current) return;
@@ -236,10 +236,6 @@ function GraphSVG({
       `translate(${transform.x}, ${transform.y}) scale(${transform.scale})`
     );
   }, [transform]);
-
-  useEffect(() => {
-    prevNodesRef.current = nodes;
-  }, [nodes]);
 
   // Node enter animation (fade in + scale up)
   useEffect(() => {
@@ -257,60 +253,63 @@ function GraphSVG({
         );
       }
     });
-  }, [nodes, prevNodesRef.current]);
+
+    prevNodesRef.current = nodes;
+  }, [nodes]);
 
   // Zoom/Pan event handlers
   const handleMouseDown = (e: React.MouseEvent<SVGGElement>) => {
-    isPanning = true;
-    startPoint = { x: e.clientX, y: e.clientY };
+    isPanningRef.current = true;
+    startPointRef.current = { x: e.clientX, y: e.clientY };
   };
 
   const handleMouseMove = (e: React.MouseEvent<SVGGElement>) => {
-    if (!isPanning) return;
-    const dx = e.clientX - startPoint.x;
-    const dy = e.clientY - startPoint.y;
+    if (!isPanningRef.current) return;
+    const dx = e.clientX - startPointRef.current.x;
+    const dy = e.clientY - startPointRef.current.y;
     const newTransform = {
       x: transform.x + dx,
       y: transform.y + dy,
       scale: transform.scale
     };
     animateTransform(newTransform);
-    startPoint = { x: e.clientX, y: e.clientY };
+    startPointRef.current = { x: e.clientX, y: e.clientY };
   };
 
   const handleMouseUp = () => {
-    isPanning = false;
+    isPanningRef.current = false;
   };
 
-  const handleWheel = (e: React.WheelEvent<SVGGElement>) => {
+  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
     e.preventDefault();
+    const svg = svgRef.current;
+    if (!svg) return;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+
     const zoomSpeed = 0.001;
     const zoomDelta = e.deltaY * zoomSpeed;
     const newScale = Math.min(
       Math.max(transform.scale - zoomDelta, 0.5),
       3
     );
-    // We want to zoom towards the mouse point
-    const rect = gRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    // Convert mouse point to svg coordinates
-    const svgPoint = svgRef.current?.createSVGPoint();
-    if (!svgPoint) return;
-    svgPoint.x = mouseX;
-    svgPoint.y = mouseY;
-    const svgPointInverted = svgPoint.matrixTransform(
-      svgRef.current?.getScreenCTM()?.inverse()
-    );
-    if (!svgPointInverted) return;
-    // Calculate the new translate to keep the mouse point fixed
-    const newX =
-      transform.x +
-      (mouseX / transform.scale - mouseX / newScale);
-    const newY =
-      transform.y +
-      (mouseY / transform.scale - mouseY / newScale);
+
+    // Convert the cursor's screen position into the SVG's own viewBox
+    // coordinate space, accounting for however the browser scaled the
+    // viewBox to fit the element's actual on-screen size.
+    const svgPoint = svg.createSVGPoint();
+    svgPoint.x = e.clientX;
+    svgPoint.y = e.clientY;
+    const cursor = svgPoint.matrixTransform(ctm.inverse());
+
+    // Undo the current group transform to find the world-space point
+    // under the cursor, then re-anchor it at the same viewBox position
+    // under the new scale.
+    const worldX = (cursor.x - transform.x) / transform.scale;
+    const worldY = (cursor.y - transform.y) / transform.scale;
+    const newX = cursor.x - worldX * newScale;
+    const newY = cursor.y - worldY * newScale;
+
     animateTransform({
       x: newX,
       y: newY,
