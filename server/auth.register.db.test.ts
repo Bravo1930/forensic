@@ -92,6 +92,16 @@ describe("register → login against a real database", () => {
     }
   });
 
+  it("auth.me never exposes passwordHash", async () => {
+    const stored = await db.getUserByEmail(email);
+    const { ctx } = createPublicContext();
+    const me = await appRouter
+      .createCaller({ ...ctx, user: stored! })
+      .auth.me();
+    expect(me).toMatchObject({ email });
+    expect(me).not.toHaveProperty("passwordHash");
+  });
+
   it("rejects a wrong password", async () => {
     const { ctx } = createPublicContext();
     await expect(

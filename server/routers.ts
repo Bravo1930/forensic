@@ -18,7 +18,23 @@ export const appRouter = router({
   system: systemRouter,
   comparison: comparisonRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    // Explicit allowlist: never send passwordHash (or any future sensitive
+    // column) to the browser.
+    me: publicProcedure.query(({ ctx }) => {
+      const u = ctx.user;
+      if (!u) return null;
+      return {
+        id: u.id,
+        openId: u.openId,
+        name: u.name,
+        email: u.email,
+        loginMethod: u.loginMethod,
+        role: u.role,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+        lastSignedIn: u.lastSignedIn,
+      };
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
