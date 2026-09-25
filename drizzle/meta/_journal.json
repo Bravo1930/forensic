@@ -36,6 +36,13 @@
       "when": 1782197911282,
       "tag": "0004_rainy_doorman",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1784527348379,
+      "tag": "0005_brainy_nemesis",
+      "breakpoints": true
     }
   ]
 }

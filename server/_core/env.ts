@@ -66,3 +66,6 @@ export const ENV = {
     enterprise: parseInt(process.env.RATE_LIMIT_ENTERPRISE ?? "300", 10),
   },
 };
+// Debug log to see what values were captured during module initialization
+console.log('[ENV DEBUG] OLLAMA_URL:', process.env.OLLAMA_URL);
+console.log('[ENV DEBUG] OLLAMA_MODEL:', process.env.OLLAMA_MODEL);

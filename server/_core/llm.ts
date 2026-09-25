@@ -1,8 +1,8 @@
 import { ENV } from "./env";
 
 const IS_DEV = process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
-const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "llama3.2:1b";
+const OLLAMA_URL = ENV.ollamaUrl;
+const OLLAMA_MODEL = ENV.ollamaModel;
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
@@ -373,8 +373,6 @@ async function invokeGemini(params: InvokeParams): Promise<InvokeResult> {
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-  console.log(`[Gemini] Using model: ${model}, contents: ${contents.length}`);
-
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -392,13 +390,10 @@ async function invokeGemini(params: InvokeParams): Promise<InvokeResult> {
   }
 
   const result = await res.json();
-  console.log(
-    `[Gemini] Response received, length: ${result.candidates?.[0]?.content?.parts?.[0]?.text?.length ?? 0}`
-  );
   return convertFromGeminiResponse(result, model);
 }
 
-// ─── Router ──────────────────────────────────────────────────────────────────
+// ─── Router ────────────────────────────────────────────────────────────────
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const { messages, maxTokens, max_tokens, response_format, responseFormat } =
@@ -456,7 +451,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     console.log(`[Ollama] Payload keys: ${Object.keys(payload).join(", ")}`);
 
     const controller = new AbortController();
-    const OLLAMA_TIMEOUT_MS = 180_000;
+    const OLLAMA_TIMEOUT_MS = 600_000; // 10 minutes
     const timeoutId = setTimeout(() => controller.abort(), OLLAMA_TIMEOUT_MS);
 
     try {

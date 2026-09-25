@@ -2,6 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Network, User, File, MapPin, Calendar } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { Flip } from "gsap/Flip";
+
+gsap.registerPlugin(Flip);
 
 interface GraphNode {
   id: string;
@@ -214,9 +218,116 @@ function GraphSVG({
   edges: GraphEdge[];
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const gRef = useRef<SVGGElement>(null);
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [positions, setPositions] = useState<
     Record<string, { x: number; y: number }>
   >({});
+  const prevNodesRef = useRef<GraphNode[]>([]);
+
+  // Zoom/Pan state
+  let isPanning = false;
+  let startPoint = { x: 0, y: 0 };
+
+  useEffect(() => {
+    if (!gRef.current) return;
+    gRef.current.setAttribute(
+      "transform",
+      `translate(${transform.x}, ${transform.y}) scale(${transform.scale})`
+    );
+  }, [transform]);
+
+  useEffect(() => {
+    prevNodesRef.current = nodes;
+  }, [nodes]);
+
+  // Node enter animation (fade in + scale up)
+  useEffect(() => {
+    const addedNodes = nodes.filter(
+      n => !prevNodesRef.current.some(p => p.id === n.id)
+    );
+
+    addedNodes.forEach(node => {
+      const nodeEl = document.querySelector(`[data-node-id="${node.id}"]`);
+      if (nodeEl) {
+        gsap.fromTo(
+          nodeEl,
+          { scale: 0, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.5, ease: "power2.out" }
+        );
+      }
+    });
+  }, [nodes, prevNodesRef.current]);
+
+  // Zoom/Pan event handlers
+  const handleMouseDown = (e: React.MouseEvent<SVGGElement>) => {
+    isPanning = true;
+    startPoint = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<SVGGElement>) => {
+    if (!isPanning) return;
+    const dx = e.clientX - startPoint.x;
+    const dy = e.clientY - startPoint.y;
+    const newTransform = {
+      x: transform.x + dx,
+      y: transform.y + dy,
+      scale: transform.scale
+    };
+    animateTransform(newTransform);
+    startPoint = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseUp = () => {
+    isPanning = false;
+  };
+
+  const handleWheel = (e: React.WheelEvent<SVGGElement>) => {
+    e.preventDefault();
+    const zoomSpeed = 0.001;
+    const zoomDelta = e.deltaY * zoomSpeed;
+    const newScale = Math.min(
+      Math.max(transform.scale - zoomDelta, 0.5),
+      3
+    );
+    // We want to zoom towards the mouse point
+    const rect = gRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    // Convert mouse point to svg coordinates
+    const svgPoint = svgRef.current?.createSVGPoint();
+    if (!svgPoint) return;
+    svgPoint.x = mouseX;
+    svgPoint.y = mouseY;
+    const svgPointInverted = svgPoint.matrixTransform(
+      svgRef.current?.getScreenCTM()?.inverse()
+    );
+    if (!svgPointInverted) return;
+    // Calculate the new translate to keep the mouse point fixed
+    const newX =
+      transform.x +
+      (mouseX / transform.scale - mouseX / newScale);
+    const newY =
+      transform.y +
+      (mouseY / transform.scale - mouseY / newScale);
+    animateTransform({
+      x: newX,
+      y: newY,
+      scale: newScale
+    });
+  };
+
+  function animateTransform(to: { x: number; y: number; scale: number }) {
+    gsap.to(transform, {
+      ...to,
+      duration: 0.5,
+      ease: "power2.out",
+      onUpdate: () => {
+        setTransform({ ...transform });
+      }
+    });
+  }
 
   useEffect(() => {
     if (nodes.length === 0) return;
@@ -252,79 +363,93 @@ function GraphSVG({
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
         className="w-full max-h-64 bg-background rounded-lg border border-border"
+        onWheel={handleWheel}
       >
-        {/* Edges */}
-        {edges.map((edge, i) => {
-          const src = positions[edge.source];
-          const tgt = positions[edge.target];
-          if (!src || !tgt) return null;
-          return (
-            <g key={i}>
-              <line
-                x1={src.x}
-                y1={src.y}
-                x2={tgt.x}
-                y2={tgt.y}
-                stroke="oklch(0.25 0 0)"
-                strokeWidth="1.5"
-                strokeDasharray="4 2"
-              />
-              {edge.label && (
+        <g
+          ref={gRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          style={{ cursor: "grab" }}
+          onMouseLeave={handleMouseUp}
+        >
+          {/* Edges */}
+          {edges.map((edge, i) => {
+            const src = positions[edge.source];
+            const tgt = positions[edge.target];
+            if (!src || !tgt) return null;
+            return (
+              <g key={i}>
+                <line
+                  x1={src.x}
+                  y1={src.y}
+                  x2={tgt.x}
+                  y2={tgt.y}
+                  stroke="oklch(0.25 0 0)"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 2"
+                />
+                {edge.label && (
+                  <text
+                    x={(src.x + tgt.x) / 2}
+                    y={(src.y + tgt.y) / 2 - 4}
+                    fill="oklch(0.55 0 0)"
+                    fontSize="9"
+                    textAnchor="middle"
+                  >
+                    {edge.label}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+
+          {/* Nodes */}
+          {nodes.map(node => {
+            const pos = positions[node.id];
+            if (!pos) return null;
+            const cfg = nodeTypeConfig[node.type] ?? nodeTypeConfig.entidad;
+            const isHighRelevance = node.relevance === "alta";
+
+            return (
+              <g
+                key={node.id}
+                data-node-id={node.id}
+                className="node"
+              >
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={isHighRelevance ? 18 : 14}
+                  fill={cfg.bg}
+                  stroke={isHighRelevance ? cfg.color : cfg.color + "80"}
+                  strokeWidth={isHighRelevance ? 2 : 1}
+                />
                 <text
-                  x={(src.x + tgt.x) / 2}
-                  y={(src.y + tgt.y) / 2 - 4}
+                  x={pos.x}
+                  y={pos.y + 4}
+                  fill={cfg.color}
+                  fontSize="10"
+                  textAnchor="middle"
+                  fontWeight="500"
+                >
+                  {node.label.slice(0, 8)}
+                </text>
+                <text
+                  x={pos.x}
+                  y={pos.y + (isHighRelevance ? 28 : 24)}
                   fill="oklch(0.55 0 0)"
-                  fontSize="9"
+                  fontSize="8"
                   textAnchor="middle"
                 >
-                  {edge.label}
+                  {node.label.length > 12
+                    ? node.label.slice(0, 12) + "&#x2026;"
+                    : node.label}
                 </text>
-              )}
-            </g>
-          );
-        })}
-
-        {/* Nodes */}
-        {nodes.map(node => {
-          const pos = positions[node.id];
-          if (!pos) return null;
-          const cfg = nodeTypeConfig[node.type] ?? nodeTypeConfig.entidad;
-          const isHighRelevance = node.relevance === "alta";
-
-          return (
-            <g key={node.id}>
-              <circle
-                cx={pos.x}
-                cy={pos.y}
-                r={isHighRelevance ? 18 : 14}
-                fill={cfg.bg}
-                stroke={isHighRelevance ? cfg.color : cfg.color + "80"}
-                strokeWidth={isHighRelevance ? 2 : 1}
-              />
-              <text
-                x={pos.x}
-                y={pos.y + 4}
-                fill={cfg.color}
-                fontSize="10"
-                textAnchor="middle"
-                fontWeight="500"
-              >
-                {node.label.slice(0, 8)}
-              </text>
-              <text
-                x={pos.x}
-                y={pos.y + (isHighRelevance ? 28 : 24)}
-                fill="oklch(0.55 0 0)"
-                fontSize="8"
-                textAnchor="middle"
-              >
-                {node.label.length > 12
-                  ? node.label.slice(0, 12) + "…"
-                  : node.label}
-              </text>
-            </g>
-          );
-        })}
+              </g>
+            );
+          })}
+        </g>
       </svg>
     </div>
   );

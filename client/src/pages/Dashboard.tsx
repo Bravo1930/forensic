@@ -27,13 +27,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import OnboardingDialog from "@/components/OnboardingDialog";
+import { gsap } from "gsap";
 import { useLocation } from "wouter";
 import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import { Flip } from "gsap/Flip";
-import { gsap } from "gsap";
 
-gsap.registerPlugin(useGSAP, Flip);
+gsap.registerPlugin(Flip);
 
 // ─── Tokens ──────────────────────────────────────────────────────────────────
 // All palette values live here. Zero hardcoded color strings outside this block.
@@ -170,6 +170,7 @@ function StatCard({
   icon: Icon,
   accent,
   onClick,
+  progress,
 }: {
   label: string;
   value: React.ReactNode;
@@ -177,6 +178,7 @@ function StatCard({
   icon: React.ElementType;
   accent?: string;
   onClick?: () => void;
+  progress?: number;
 }) {
   return (
     <button
@@ -203,10 +205,18 @@ function StatCard({
           </TooltipContent>
         </Tooltip>
       </div>
-      <div className="text-2xl font-bold tracking-tight text-white">
+      <div className="text-3xl font-bold tracking-tight text-white">
         {value}
       </div>
-      {sub && <div className="text-[11px] text-white/55">{sub}</div>}
+      {progress !== undefined && (
+        <div className="w-full bg-white/10 rounded-h-full h-2.5 mt-1">
+          <div
+            className={`bg-white rounded-h-full h-2.5 transition-all duration-500 ${progress > 80 ? "bg-rose-500" : "bg-indigo-500"}`}
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+      )}
+      {sub && <div className="text-[11px] text-white/55 mt-1">{sub}</div>}
       <ChevronRight className="absolute bottom-4 right-4 w-3.5 h-3.5 text-white/20 group-hover:text-white/50 transition-colors" />
     </button>
   );
@@ -478,6 +488,8 @@ export default function Dashboard() {
     .slice(0, 6);
 
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const statCardsRef = useRef<HTMLDivElement>(null);
+  const emptyIconRef = useRef<SVGSVGElement>(null);
 
   const storageGB = sub ? sub.storageUsedBytes / 1024 / 1024 / 1024 : 0;
   const storageLimGB = sub ? sub.storageLimitBytes / 1024 / 1024 / 1024 : 0;
@@ -513,6 +525,17 @@ export default function Dashboard() {
         ease: "power2.out",
         delay: 0.3,
       });
+
+      // Breathing animation for the empty state icon
+      if (emptyIconRef.current) {
+        gsap.to(emptyIconRef.current, {
+          scale: 1.1,
+          duration: 1.5,
+          yoyo: true,
+          repeat: -1,
+          ease: "power1.inOut",
+        });
+      }
     },
     { scope: dashboardRef }
   );
@@ -604,7 +627,7 @@ export default function Dashboard() {
           )}
 
           {/* ── Stat cards ─────────────────────────────────────────────────── */}
-          <div className="section-fade grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div ref={statCardsRef} className="section-fade grid grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard
               label="Casos activos"
               value={casesLoading ? "—" : activeCases.length}
@@ -622,6 +645,7 @@ export default function Dashboard() {
               }
               icon={Brain}
               accent={analysesPct > 80 ? "bg-rose-500/15" : undefined}
+              progress={analysesPct}
               onClick={() => navigate("/analisis")}
             />
             <StatCard
@@ -630,6 +654,7 @@ export default function Dashboard() {
               sub={sub ? `de ${storageLimGB.toFixed(0)} GB` : undefined}
               icon={FileSearch}
               accent={storePct > 80 ? "bg-rose-500/15" : undefined}
+              progress={storePct}
               onClick={() => navigate("/evidencia")}
             />
             <StatCard
@@ -667,7 +692,7 @@ export default function Dashboard() {
                 <div className="relative flex flex-col items-center justify-center py-16 gap-4 overflow-hidden">
                   <div className="absolute inset-0 flex items-center justify-center opacity-[0.04] pointer-events-none">
                     <Scale className="w-32 h-32" />
-                    <FolderOpen className="w-24 h-24 -ml-8 mt-16" />
+                    <FolderOpen ref={emptyIconRef} className="w-24 h-24 -ml-8 mt-16" />
                     <FileSearch className="w-20 h-20 -ml-4 -mt-12" />
                   </div>
                   <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
@@ -682,11 +707,10 @@ export default function Dashboard() {
                     </p>
                   </div>
                   <Button
-                    size="sm"
                     onClick={() => navigate("/casos/nuevo")}
-                    className="bg-indigo-600 hover:bg-indigo-500 border-0 text-white gap-1.5 shadow-lg shadow-indigo-900/40"
+                    className="shrink-0 bg-indigo-600 hover:bg-indigo-500 border-0 text-white font-semibold gap-2 shadow-lg shadow-indigo-900/40 btn-glow"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-4 h-4" />
                     Crear caso
                   </Button>
                 </div>
@@ -753,7 +777,7 @@ export default function Dashboard() {
 
               {/* Upgrade card — solo plan free */}
               {sub?.plan === "free" && (
-                <div className="section-fade rounded-xl border border-indigo-500/20 bg-indigo-600/8 p-5">
+                <div className="section-fade rounded-xl border border-indigo-500/20 bg-gradient-to-t from-indigo-600/10 to-indigo-500/10 p-5 ring-2 ring-indigo-500/20">
                   <div className="flex items-center gap-2 mb-3">
                     <Zap className="w-3.5 h-3.5 text-indigo-400" />
                     <span className="text-xs font-semibold text-indigo-300 uppercase tracking-widest">
