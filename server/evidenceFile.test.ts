@@ -1,4 +1,11 @@
-import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+} from "fs";
 import { randomBytes } from "crypto";
 import type { AddressInfo } from "net";
 import type { Server } from "http";
@@ -31,6 +38,17 @@ vi.mock("./imageAnalysis", async importOriginal => ({
   ...(await importOriginal<typeof import("./imageAnalysis")>()),
   analyzeImageForensics: (...args: unknown[]) => analyzeImageForensics(...args),
   extractExifFromBase64: vi.fn(async () => ({})),
+}));
+
+const compareImagesForensically = vi.fn(async (..._args: unknown[]) => ({
+  manipulationLikelihood: "ninguna",
+  differences: [],
+  executiveSummary: "",
+}));
+vi.mock("./imageComparison", async importOriginal => ({
+  ...(await importOriginal<typeof import("./imageComparison")>()),
+  compareImagesForensically: (...args: unknown[]) =>
+    compareImagesForensically(...args),
 }));
 
 const db = await import("./db");
@@ -99,6 +117,13 @@ afterAll(async () => {
   } catch {
     // Windows can keep the SQLite file locked briefly; temp dir is harmless
   }
+});
+
+describe("maps.config", () => {
+  it("no longer exists, so the Forge API key can't reach any browser", () => {
+    const procedures = Object.keys(appRouter._def.procedures);
+    expect(procedures.some(p => p.startsWith("maps."))).toBe(false);
+  });
 });
 
 describe("environment secrets", () => {
@@ -249,6 +274,58 @@ describe("evidence upload → encrypted storage → authenticated download", () 
       .catch(() => {});
     const imageUrl = analyzeImageForensics.mock.calls.at(-1)?.[0];
     expect(imageUrl).toBe(`data:image/png;base64,${PNG.toString("base64")}`);
+  });
+
+  it("image comparison sends decrypted bytes to the LLM, not the auth-only URL", async () => {
+    const GIF = Buffer.from(
+      "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+      "base64"
+    );
+    const b = await owner.caller.evidence.upload({
+      caseId,
+      filename: "b.gif",
+      mimeType: "image/gif",
+      sizeBytes: GIF.length,
+      base64Data: GIF.toString("base64"),
+    });
+
+    compareImagesForensically.mockClear();
+    await owner.caller.comparison.compare({
+      caseId,
+      evidenceAId: imageId,
+      evidenceBId: b.id,
+    });
+    await vi.waitFor(() => expect(compareImagesForensically).toHaveBeenCalled());
+
+    const args = compareImagesForensically.mock.calls[0][0] as Record<string, string>;
+    expect(args.imageAUrl).toBe(`data:image/png;base64,${PNG.toString("base64")}`);
+    expect(args.imageBUrl).toBe(`data:image/gif;base64,${GIF.toString("base64")}`);
+  });
+
+  it("deleting evidence also deletes its stored file", async () => {
+    const { id } = await owner.caller.evidence.upload({
+      caseId,
+      filename: "to-delete.png",
+      mimeType: "image/png",
+      sizeBytes: PNG.length,
+      base64Data: PNG.toString("base64"),
+    });
+    const key = (await db.getEvidenceById(id, owner.user.id))!.s3Key!;
+    const onDisk = join(process.env.LOCAL_UPLOAD_DIR!, key);
+    expect(existsSync(onDisk)).toBe(true);
+
+    await owner.caller.evidence.delete({ id });
+
+    expect(existsSync(onDisk)).toBe(false);
+    expect(await db.getEvidenceById(id, owner.user.id)).toBeNull();
+    expect((await get(`/api/evidence/${id}/file`, owner.cookie)).status).toBe(404);
+  });
+
+  it("another user cannot delete (or remove the file of) someone else's evidence", async () => {
+    const key = (await db.getEvidenceById(imageId, owner.user.id))!.s3Key!;
+    await other.caller.evidence.delete({ id: imageId });
+    expect(existsSync(join(process.env.LOCAL_UPLOAD_DIR!, key))).toBe(true);
+    expect(await db.getEvidenceById(imageId, owner.user.id)).not.toBeNull();
   });
 
   it("keeps every stored file encrypted (no plaintext files on disk)", () => {

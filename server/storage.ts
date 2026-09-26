@@ -199,6 +199,30 @@ async function readRaw(key: string): Promise<Buffer> {
 }
 
 /**
+ * Delete a stored file. Returns true if a file was removed, false if there
+ * was nothing to remove or the driver can't delete. A missing file is not
+ * an error: the goal (no file left behind) already holds.
+ */
+export async function storageDelete(relKey: string): Promise<boolean> {
+  const key = sanitizeKey(relKey);
+  const driver = getStorageDriver();
+
+  if (driver === "local") {
+    const localPath = localPathFor(key);
+    if (!fs.existsSync(localPath)) return false;
+    fs.rmSync(localPath);
+    console.log(`[Storage] Deleted: ${key.slice(0, 16)}...`);
+    return true;
+  }
+
+  // The Forge proxy exposes no delete endpoint that this code knows of.
+  console.warn(
+    `[Storage] Cannot delete ${key.slice(0, 16)}... with driver "${driver}" — file left in storage`
+  );
+  return false;
+}
+
+/**
  * Read a stored file and return its original bytes, decrypting it when the
  * key marks it as encrypted. Throws if the file is missing or tampered with.
  */

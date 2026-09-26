@@ -11,6 +11,27 @@ import {
 } from "../imageComparison";
 import { isImageMimeType } from "../imageAnalysis";
 import { notifyOwner } from "../_core/notification";
+import { storageRead } from "../storage";
+
+async function toDataUrl(
+  s3Key: string | null,
+  mimeType: string | null
+): Promise<string> {
+  if (!s3Key) throw new Error("Evidence has no stored file");
+  const bytes = await storageRead(s3Key);
+  return `data:${mimeType ?? "image/jpeg"};base64,${bytes.toString("base64")}`;
+}
+
+function parseMetadata(metadata: unknown): Record<string, unknown> {
+  if (typeof metadata === "string") {
+    try {
+      return JSON.parse(metadata || "{}");
+    } catch {
+      return {};
+    }
+  }
+  return (metadata ?? {}) as Record<string, unknown>;
+}
 
 export const comparisonRouter = router({
   /** Start a new image comparison between two evidence items */
@@ -57,6 +78,22 @@ export const comparisonRouter = router({
         });
       }
 
+      // Evidence is encrypted at rest and s3Url is an authenticated app route
+      // the LLM can't reach, so send the decrypted bytes as data URLs.
+      let imageAUrl: string;
+      let imageBUrl: string;
+      try {
+        imageAUrl = await toDataUrl(evA.s3Key, evA.mimeType);
+        imageBUrl = await toDataUrl(evB.s3Key, evB.mimeType);
+      } catch (err) {
+        console.error("[Comparison] Could not read evidence images:", err);
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message:
+            "No se pudo leer el archivo de una de las imágenes. Vuelve a subir la evidencia.",
+        });
+      }
+
       // Create comparison record (scopedDb auto-injects userId)
       const [insertResult] = await sdb.comparisons.insert({
         caseId: input.caseId,
@@ -70,21 +107,17 @@ export const comparisonRouter = router({
       const comparisonId = insertResult?.id ?? 0;
 
       // Extract existing analysis metadata if available
-      const metaA = (
-        typeof evA.metadata === "string"
-          ? JSON.parse(evA.metadata || "{}")
-          : (evA.metadata ?? {})
-      ) as Record<string, unknown>;
-      const metaB = (evB.metadata ?? {}) as Record<string, unknown>;
+      const metaA = parseMetadata(evA.metadata);
+      const metaB = parseMetadata(evB.metadata);
 
       // Run comparison asynchronously
       (async () => {
         try {
           const result = await compareImagesForensically({
-            imageAUrl: evA.s3Url ?? "",
+            imageAUrl,
             imageAFilename: evA.originalName,
             imageAMimeType: evA.mimeType ?? "image/jpeg",
-            imageBUrl: evB.s3Url ?? "",
+            imageBUrl,
             imageBFilename: evB.originalName,
             imageBMimeType: evB.mimeType ?? "image/jpeg",
             caseContext: input.caseContext,

@@ -10,7 +10,12 @@ import {
   updateEvidenceImageAnalysis,
   updateStorageUsed,
 } from "../db";
-import { requireStorage, storagePut, storageRead } from "../storage";
+import {
+  requireStorage,
+  storageDelete,
+  storagePut,
+  storageRead,
+} from "../storage";
 import { extractFileMetadata } from "../forensicAI";
 import {
   analyzeImageForensics,
@@ -343,9 +348,21 @@ export const evidenceRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
+      const item = await getEvidenceById(input.id, ctx.user.id);
       const bytesFreed = await deleteEvidence(input.id, ctx.user.id);
       if (bytesFreed > 0) {
         await updateStorageUsed(ctx.user.id, -bytesFreed);
+      }
+
+      // Remove the stored file only after the record is gone: a failed file
+      // delete leaves an orphan (logged), never a record pointing at nothing.
+      if (item?.s3Key) {
+        await storageDelete(item.s3Key).catch(err =>
+          console.error(
+            `[Evidence] Record ${input.id} deleted but its file could not be:`,
+            err
+          )
+        );
       }
       return { success: true };
     }),

@@ -11,7 +11,6 @@ import { subscriptionsRouter } from "./routers/subscriptions";
 import { reportsRouter } from "./routers/reports";
 import { stripeRouter } from "./routers/stripe";
 import { legalAnalysisRouter } from "./routers/legalAnalysis";
-import { ENV } from "./_core/env";
 import { register, login } from "./_core/localAuth";
 
 export const appRouter = router({
@@ -86,20 +85,8 @@ export const appRouter = router({
   reports: reportsRouter,
   stripe: stripeRouter,
   legalAnalysis: legalAnalysisRouter,
-  maps: router({
-    config: publicProcedure.query(() => {
-      const proxyUrl = ENV.forgeApiUrl;
-      const apiKey = ENV.forgeApiKey;
-      if (!proxyUrl || !apiKey) {
-        return { available: false } as const;
-      }
-      return {
-        available: true,
-        proxyUrl: `${proxyUrl.replace(/\/+$/, "")}/v1/maps/proxy`,
-        apiKey,
-      } as const;
-    }),
-  }),
+  // No maps.config: it handed BUILT_IN_FORGE_API_KEY (a master key for all
+  // Forge services) to any browser. Server-side maps live in _core/map.ts.
 });
 
 export type AppRouter = typeof appRouter;
