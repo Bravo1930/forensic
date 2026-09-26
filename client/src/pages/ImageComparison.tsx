@@ -43,6 +43,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import { AiDisclaimer } from "@/components/AiDisclaimer";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -796,6 +797,7 @@ function ComparisonResultView({
 
           {/* Resumen tab */}
           <TabsContent value="resumen" className="mt-3 space-y-3">
+            <AiDisclaimer />
             {/* Manipulation likelihood card */}
             <Card
               className={`border ${lk?.className.includes("border") ? "" : "border-border"}`}

@@ -16,7 +16,7 @@ import { registerCsrfProtection } from "./csrf";
 import { startWorker } from "./queue";
 import { handleAnalysisJob } from "./analysisWorker";
 import { validateEnvironment } from "./env";
-import { runMigrations } from "../db";
+import { failInterruptedComparisons, runMigrations } from "../db";
 import { getStorageDriver } from "../storage";
 import filesRouter from "../routes/files";
 
@@ -44,6 +44,13 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 
 async function startServer() {
   await runMigrations();
+
+  const interrupted = await failInterruptedComparisons();
+  if (interrupted > 0) {
+    console.warn(
+      `[Comparison] Marked ${interrupted} comparison(s) interrupted by the last restart as failed`
+    );
+  }
 
   const storageDriver = getStorageDriver();
   if (storageDriver) {

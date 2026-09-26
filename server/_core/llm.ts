@@ -231,6 +231,37 @@ const resolveModel = () => {
   return "gemini-2.5-flash";
 };
 
+function dataUrlToBase64(url: string): string {
+  const match = /^data:[^;,]+;base64,([\s\S]*)$/.exec(url);
+  if (!match) {
+    // Evidence is always passed inline; a remote URL would be unreachable
+    // (and must not be fetched) from the private model server.
+    throw new Error("Ollama requires images as base64 data URLs");
+  }
+  return match[1];
+}
+
+/**
+ * Tell the model today's date. Without it, models judge dates against their
+ * training cutoff and flag real past dates as "fecha futura".
+ */
+export function withCurrentDate(
+  messages: Message[],
+  now: Date = new Date()
+): Message[] {
+  const today = now.toISOString().slice(0, 10);
+  const note =
+    `Fecha actual: ${today}. Úsala como referencia temporal: ` +
+    `una fecha igual o anterior a ${today} NO es una fecha futura.`;
+  const i = messages.findIndex(m => m.role === "system");
+  if (i >= 0 && typeof messages[i].content === "string") {
+    const copy = [...messages];
+    copy[i] = { ...messages[i], content: `${messages[i].content}\n\n${note}` };
+    return copy;
+  }
+  return [{ role: "system", content: note }, ...messages];
+}
+
 const convertToOllamaFormat = (messages: Message[]) => {
   const ollamaMessages: Array<{
     role: string;
@@ -252,7 +283,16 @@ const convertToOllamaFormat = (messages: Message[]) => {
         const text = textParts
           .map(c => (typeof c === "string" ? c : (c as any).text))
           .join("\n");
-        ollamaMessages.push({ role: "user", content: text });
+        // Ollama takes images as raw base64 in `images`, not as content parts.
+        // Without this the model never sees the evidence and invents findings.
+        const images = content
+          .filter(c => typeof c !== "string" && (c as any).type === "image_url")
+          .map(c => dataUrlToBase64((c as ImageContent).image_url.url));
+        ollamaMessages.push(
+          images.length
+            ? { role: "user", content: text, images }
+            : { role: "user", content: text }
+        );
       }
     } else if (msg.role === "assistant") {
       ollamaMessages.push({ role: "assistant", content: String(msg.content) });
@@ -396,8 +436,15 @@ async function invokeGemini(params: InvokeParams): Promise<InvokeResult> {
 // ─── Router ────────────────────────────────────────────────────────────────
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  const { messages, maxTokens, max_tokens, response_format, responseFormat } =
-    params;
+  const { maxTokens, max_tokens, response_format, responseFormat } = params;
+  const messages = withCurrentDate(params.messages);
+  params = { ...params, messages };
+
+  if (!ENV.ollamaUrl && !ENV.geminiApiKey && !ENV.forgeApiUrl) {
+    throw new Error(
+      "No hay proveedor de IA configurado (OLLAMA_URL, GEMINI_API_KEY o BUILT_IN_FORGE_API_URL)"
+    );
+  }
 
   // Priority: Ollama (if configured) → Gemini (if key set) → Forge/OpenAI-compatible
   if (ENV.ollamaUrl && !ENV.geminiApiKey) {
@@ -438,14 +485,25 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       model: OLLAMA_MODEL,
       messages: ollamaMessages,
       stream: false,
+      // Reasoning traces add minutes on CPU and aren't used; the answer is
+      // constrained by the schema below instead.
+      think: false,
       options: {
         temperature: 0.3,
         num_predict: maxTokens ?? max_tokens ?? 8192,
+        // Two images + the forensic prompt are ~3k tokens and the answer up
+        // to ~2k; Ollama's default window would silently truncate that.
+        num_ctx: ENV.ollamaNumCtx,
       },
     };
 
     if (rf) {
-      payload.format = "json";
+      // Structured outputs: pass the real JSON schema so small models are
+      // forced into it, not just told about it in the prompt.
+      payload.format =
+        rf.type === "json_schema" && rf.json_schema?.schema
+          ? rf.json_schema.schema
+          : "json";
     }
 
     console.log(`[Ollama] Payload keys: ${Object.keys(payload).join(", ")}`);

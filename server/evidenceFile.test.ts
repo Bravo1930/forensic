@@ -56,6 +56,7 @@ const { appRouter } = await import("./routers");
 const { default: filesRouter } = await import("./routes/files");
 const { validateEnvironment, parseEvidenceKey } = await import("./_core/env");
 const { encryptBuffer, decryptBuffer } = await import("./_core/encryption");
+const { AI_REVIEW_DISCLAIMER } = await import("../shared/const");
 
 // 1x1 transparent PNG
 const PNG = Buffer.from(
@@ -176,6 +177,7 @@ describe("evidence upload → encrypted storage → authenticated download", () 
   let other: Awaited<ReturnType<typeof signUp>>;
   let caseId: number;
   let imageId: number;
+  let gifId: number;
 
   beforeAll(async () => {
     owner = await signUp("owner@example.com");
@@ -289,6 +291,7 @@ describe("evidence upload → encrypted storage → authenticated download", () 
       base64Data: GIF.toString("base64"),
     });
 
+    gifId = b.id;
     compareImagesForensically.mockClear();
     await owner.caller.comparison.compare({
       caseId,
@@ -300,6 +303,28 @@ describe("evidence upload → encrypted storage → authenticated download", () 
     const args = compareImagesForensically.mock.calls[0][0] as Record<string, string>;
     expect(args.imageAUrl).toBe(`data:image/png;base64,${PNG.toString("base64")}`);
     expect(args.imageBUrl).toBe(`data:image/gif;base64,${GIF.toString("base64")}`);
+  });
+
+  it("a critical finding completes even when owner notifications aren't configured", async () => {
+    compareImagesForensically.mockResolvedValueOnce({
+      manipulationLikelihood: "critica",
+      differences: [],
+      executiveSummary: "Monto alterado",
+    });
+    const { id } = await owner.caller.comparison.compare({
+      caseId,
+      evidenceAId: imageId,
+      evidenceBId: gifId,
+    });
+    const sdb = (await db.getScopedDb(owner.user.id))!;
+    await vi.waitFor(async () => {
+      const [row] = await sdb.comparisons.selectById(id);
+      expect(row.status).not.toBe("procesando");
+    });
+    const [row] = await sdb.comparisons.selectById(id);
+    expect(row.errorMessage ?? null).toBeNull();
+    expect(row.status).toBe("completado");
+    expect(row.manipulationLikelihood).toBe("critica");
   });
 
   it("deleting evidence also deletes its stored file", async () => {
@@ -326,6 +351,46 @@ describe("evidence upload → encrypted storage → authenticated download", () 
     await other.caller.evidence.delete({ id: imageId });
     expect(existsSync(join(process.env.LOCAL_UPLOAD_DIR!, key))).toBe(true);
     expect(await db.getEvidenceById(imageId, owner.user.id)).not.toBeNull();
+  });
+
+  it("marks comparisons interrupted by a restart as failed", async () => {
+    const sdb = (await db.getScopedDb(owner.user.id))!;
+    const [{ id }] = await sdb.comparisons.insert({
+      caseId,
+      evidenceAId: imageId,
+      evidenceBId: imageId,
+      status: "procesando",
+      manipulationLikelihood: "ninguna",
+      differenceCount: 0,
+    });
+
+    expect(await db.failInterruptedComparisons()).toBeGreaterThanOrEqual(1);
+
+    const [row] = await sdb.comparisons.selectById(id);
+    expect(row.status).toBe("error");
+    expect(row.errorMessage).toBe(db.INTERRUPTED_COMPARISON_MSG);
+  });
+
+  it("generated reports carry the AI-review disclaimer, readable after decryption", async () => {
+    const analysisId = await db.createAnalysis({
+      caseId,
+      userId: owner.user.id,
+      type: "completo",
+      title: "Análisis de prueba",
+      status: "completado",
+      executiveSummary: "Resumen de prueba",
+      expertOpinion: "Opinión de prueba",
+    });
+    const report = await owner.caller.reports.generate({ caseId, analysisId });
+
+    const res = await get(report.url, owner.cookie);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain(AI_REVIEW_DISCLAIMER);
+    // Before any AI content, not buried at the end
+    expect(html.indexOf(AI_REVIEW_DISCLAIMER)).toBeLessThan(
+      html.indexOf("Opinión de prueba")
+    );
   });
 
   it("keeps every stored file encrypted (no plaintext files on disk)", () => {

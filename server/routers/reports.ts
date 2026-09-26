@@ -10,6 +10,18 @@ import {
 } from "../db";
 import { requireStorage, storagePut } from "../storage";
 import { protectedProcedure, router } from "../_core/trpc";
+import {
+  AI_REVIEW_DISCLAIMER,
+  AI_REVIEW_DISCLAIMER_DETAIL,
+} from "@shared/const";
+
+// Placed right under the header of every generated report, before any
+// AI-generated content, so it survives printing and excerpting.
+export const AI_DISCLAIMER_HTML = `
+  <div class="ai-disclaimer" role="note" style="margin: 20px 0; padding: 14px 18px; border: 2px solid #c0392b; background: #fdf2f0; font-size: 10.5pt; line-height: 1.5;">
+    <strong style="display: block; color: #c0392b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">⚠ ${AI_REVIEW_DISCLAIMER}</strong>
+    ${AI_REVIEW_DISCLAIMER_DETAIL}
+  </div>`;
 
 function randomSuffix() {
   return Math.random().toString(36).slice(2, 10);
@@ -174,6 +186,7 @@ function buildPdfHtml(
     </div>
     <div class="red-bar"></div>
   </div>
+${AI_DISCLAIMER_HTML}
 
   <div class="doc-title">
     <h2>Dictamen Pericial en Informática Forense</h2>
@@ -406,6 +419,7 @@ function buildContradictionPdfHtml(
     </div>
     <div class="red-bar"></div>
   </div>
+${AI_DISCLAIMER_HTML}
 
   <div class="doc-title">
     <h2>Análisis de Contradicciones en Declaraciones</h2>

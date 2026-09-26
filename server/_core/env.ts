@@ -90,8 +90,14 @@ export const ENV = {
     process.env.ANALYSIS_CACHE_TTL_MINUTES ?? "60",
     10
   ),
-  ollamaUrl: process.env.OLLAMA_URL ?? "http://localhost:11434",
-  ollamaModel: process.env.OLLAMA_MODEL ?? "llama3.2:1b",
+  // Only development assumes a local Ollama; in production an unset URL means
+  // "no Ollama", not a silent localhost that doesn't exist.
+  ollamaUrl:
+    process.env.OLLAMA_URL ??
+    (process.env.NODE_ENV === "production" ? "" : "http://localhost:11434"),
+  // Must be a vision model: evidence analysis sends images.
+  ollamaModel: process.env.OLLAMA_MODEL ?? "qwen3.5:4b",
+  ollamaNumCtx: parseInt(process.env.OLLAMA_NUM_CTX ?? "16384", 10),
   rateLimits: {
     free: parseInt(process.env.RATE_LIMIT_FREE ?? "30", 10),
     premium: parseInt(process.env.RATE_LIMIT_PREMIUM ?? "100", 10),

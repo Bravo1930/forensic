@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AiDisclaimer } from "@/components/AiDisclaimer";
 
 // ─── Types (mirrored from server) ─────────────────────────────────────────────
 
@@ -343,6 +344,8 @@ export default function ImageAnalysisPanel({
               <span className="ml-1.5 text-xs">Re-analizar</span>
             </Button>
           </div>
+
+          <AiDisclaimer />
 
           {/* Analysis tabs */}
           <Tabs defaultValue="resumen" className="w-full">

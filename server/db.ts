@@ -5,6 +5,7 @@ import {
   analyses,
   cases,
   evidence,
+  imageComparisons,
   reports,
   sessions,
   subscriptions,
@@ -61,6 +62,26 @@ export async function runMigrations() {
   const migrationsFolder = process.env.MIGRATIONS_DIR ?? "./drizzle";
   await migrate(db, { migrationsFolder });
   console.log(`[Database] Migrations applied from ${migrationsFolder}`);
+}
+
+export const INTERRUPTED_COMPARISON_MSG =
+  "La comparación se interrumpió por un reinicio del servidor. Vuelve a ejecutarla.";
+
+/**
+ * Comparisons run in-process in the background. If the server restarted
+ * (redeploy, crash) while one was running it would stay "procesando"
+ * forever; call at startup to mark those as failed so users can retry.
+ * Returns how many were marked.
+ */
+export async function failInterruptedComparisons(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const rows = await db
+    .update(imageComparisons)
+    .set({ status: "error", errorMessage: INTERRUPTED_COMPARISON_MSG })
+    .where(eq(imageComparisons.status, "procesando"))
+    .returning({ id: imageComparisons.id });
+  return rows.length;
 }
 
 export async function getDbClient() {

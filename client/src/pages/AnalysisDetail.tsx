@@ -27,6 +27,7 @@ import { useLocation, useParams } from "wouter";
 import { Streamdown } from "streamdown";
 import { sanitizeHtml } from "@/lib/sanitize";
 import TimelineView from "@/components/TimelineView";
+import { AiDisclaimer } from "@/components/AiDisclaimer";
 import RelationshipGraph from "@/components/RelationshipGraph";
 
 interface KeyFinding {
@@ -270,6 +271,8 @@ export default function AnalysisDetail() {
             );
           })}
         </div>
+
+        <AiDisclaimer />
 
         {/* Main tabs */}
         <Tabs defaultValue="resumen">

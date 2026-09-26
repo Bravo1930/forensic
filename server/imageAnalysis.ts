@@ -1,4 +1,5 @@
 import { invokeLLM } from "./_core/llm";
+import exifr from "exifr";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -119,89 +120,76 @@ export interface ImageAnalysisResult {
   imageUrl: string;
 }
 
-// ─── EXIF extraction via LLM (since we can't run native libs in deployment) ───
+// ─── EXIF extraction (deterministic parser, never the LLM) ─────────────────
+// Forensic metadata must come from the file itself: a model asked to "infer"
+// EXIF invents plausible values. Missing metadata is reported as missing.
+
+function asIso(v: unknown): string | undefined {
+  if (v instanceof Date && !Number.isNaN(v.getTime())) return v.toISOString();
+  return typeof v === "string" && v ? v : undefined;
+}
+function asNum(v: unknown): number | undefined {
+  return typeof v === "number" && Number.isFinite(v) ? v : undefined;
+}
+function asStr(v: unknown): string | undefined {
+  if (v === undefined || v === null || v === "") return undefined;
+  return typeof v === "object" ? JSON.stringify(v) : String(v);
+}
 
 export async function extractExifFromBase64(
   base64Data: string,
-  mimeType: string,
+  _mimeType: string,
   filename: string
 ): Promise<ExifMetadata> {
-  // We use the LLM vision to extract any visible metadata indicators
-  // and also parse EXIF-like data from the image binary header patterns
   try {
-    const response = await invokeLLM({
-      messages: [
-        {
-          role: "system",
-          content:
-            "Eres un experto en análisis forense de imágenes digitales. Analiza la imagen y extrae todos los metadatos EXIF visibles o inferibles. Devuelve JSON estructurado.",
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${base64Data}`,
-                detail: "high",
-              },
-            },
-            {
-              type: "text",
-              text: `Analiza esta imagen forense (archivo: ${filename}) y extrae todos los metadatos EXIF que puedas identificar o inferir. Incluye: dispositivo capturador, fechas, coordenadas GPS si son visibles, dimensiones, software de edición, y cualquier indicador de manipulación en los metadatos. Devuelve un JSON con los campos disponibles.`,
-            },
-          ],
-        },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "exif_metadata",
-          strict: false,
-          schema: {
-            type: "object",
-            properties: {
-              make: { type: "string" },
-              model: { type: "string" },
-              software: { type: "string" },
-              dateTimeOriginal: { type: "string" },
-              dateTimeDigitized: { type: "string" },
-              dateTime: { type: "string" },
-              gpsLatitude: { type: "number" },
-              gpsLongitude: { type: "number" },
-              gpsAltitude: { type: "number" },
-              gpsLatitudeRef: { type: "string" },
-              gpsLongitudeRef: { type: "string" },
-              gpsTimestamp: { type: "string" },
-              gpsDateStamp: { type: "string" },
-              imageWidth: { type: "number" },
-              imageHeight: { type: "number" },
-              orientation: { type: "number" },
-              colorSpace: { type: "string" },
-              exposureTime: { type: "string" },
-              fNumber: { type: "number" },
-              iso: { type: "number" },
-              focalLength: { type: "string" },
-              flash: { type: "string" },
-              artist: { type: "string" },
-              copyright: { type: "string" },
-              imageDescription: { type: "string" },
-              xmpToolkit: { type: "string" },
-              photoshopDocumentID: { type: "string" },
-              historyAction: { type: "string" },
-            },
-            additionalProperties: true,
-          },
-        },
-      },
-    });
+    const buffer = Buffer.from(base64Data, "base64");
+    const raw = (await exifr.parse(buffer, {
+      tiff: true,
+      exif: true,
+      gps: true,
+      xmp: true,
+      icc: false,
+      iptc: false,
+      translateValues: false,
+      mergeOutput: true,
+    })) as Record<string, unknown> | undefined;
+    if (!raw) return {};
 
-    const rawContent = response.choices[0]?.message?.content;
-    const content = typeof rawContent === "string" ? rawContent : null;
-    if (!content) return {};
-    return JSON.parse(content) as ExifMetadata;
+    const exif: ExifMetadata = {
+      make: asStr(raw.Make),
+      model: asStr(raw.Model),
+      software: asStr(raw.Software) ?? asStr(raw.CreatorTool),
+      dateTimeOriginal: asIso(raw.DateTimeOriginal),
+      dateTimeDigitized: asIso(raw.CreateDate),
+      dateTime: asIso(raw.ModifyDate),
+      gpsLatitude: asNum(raw.latitude),
+      gpsLongitude: asNum(raw.longitude),
+      gpsAltitude: asNum(raw.GPSAltitude),
+      gpsLatitudeRef: asStr(raw.GPSLatitudeRef),
+      gpsLongitudeRef: asStr(raw.GPSLongitudeRef),
+      gpsTimestamp: asStr(raw.GPSTimeStamp),
+      gpsDateStamp: asStr(raw.GPSDateStamp),
+      imageWidth: asNum(raw.ExifImageWidth) ?? asNum(raw.ImageWidth),
+      imageHeight: asNum(raw.ExifImageHeight) ?? asNum(raw.ImageHeight),
+      orientation: asNum(raw.Orientation),
+      colorSpace: asStr(raw.ColorSpace),
+      exposureTime: asStr(raw.ExposureTime),
+      fNumber: asNum(raw.FNumber),
+      iso: asNum(raw.ISO),
+      focalLength: asStr(raw.FocalLength),
+      flash: asStr(raw.Flash),
+      artist: asStr(raw.Artist),
+      copyright: asStr(raw.Copyright),
+      imageDescription: asStr(raw.ImageDescription),
+      xmpToolkit: asStr(raw.xmptk) ?? asStr(raw.XMPToolkit),
+      photoshopDocumentID: asStr(raw.DocumentID),
+      historyAction: asStr(raw.History),
+    };
+    return Object.fromEntries(
+      Object.entries(exif).filter(([, v]) => v !== undefined)
+    ) as ExifMetadata;
   } catch (e) {
-    console.warn("[ImageAnalysis] EXIF extraction failed:", e);
+    console.warn(`[ImageAnalysis] EXIF parse failed for ${filename}:`, e);
     return {};
   }
 }
