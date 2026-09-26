@@ -2,26 +2,26 @@ import {
   createCipheriv,
   createDecipheriv,
   randomBytes,
-  scryptSync,
   createHash,
 } from "crypto";
-import { ENV } from "./env";
+import { parseEvidenceKey } from "./env";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
-const SALT_LENGTH = 16;
-const TAG_LENGTH = 16;
 
+/**
+ * Dedicated evidence key — deliberately independent of JWT_SECRET so that
+ * rotating session secrets never makes stored evidence unreadable.
+ * Read at call time so a missing key fails loudly instead of defaulting.
+ */
 function getEncryptionKey(): Buffer {
-  if (
-    !ENV.cookieSecret ||
-    ENV.cookieSecret === "default-dev-key-change-in-production"
-  ) {
+  const key = parseEvidenceKey(process.env.EVIDENCE_ENCRYPTION_KEY);
+  if (!key) {
     throw new Error(
-      "JWT_SECRET no está configurado. Debe tener al menos 32 caracteres."
+      "EVIDENCE_ENCRYPTION_KEY is missing or invalid (need 32 bytes as hex or base64)"
     );
   }
-  return scryptSync(ENV.cookieSecret, "forensic-encryption-salt", 32);
+  return key;
 }
 
 export interface EncryptedData {

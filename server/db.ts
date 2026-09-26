@@ -457,6 +457,17 @@ export async function getReportsByCase(caseId: number, userId: number) {
   return sdb.reports.select(caseId).orderBy(desc(reports.createdAt));
 }
 
+export async function getReportById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(reports)
+    .where(and(eq(reports.id, id), eq(reports.userId, userId)))
+    .limit(1);
+  return result[0] ?? null;
+}
+
 export async function updateReport(
   id: number,
   userId: number,

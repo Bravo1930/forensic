@@ -17,6 +17,8 @@ import { startWorker } from "./queue";
 import { handleAnalysisJob } from "./analysisWorker";
 import { validateEnvironment } from "./env";
 import { runMigrations } from "../db";
+import { getStorageDriver } from "../storage";
+import filesRouter from "../routes/files";
 
 // Validate environment configuration on startup
 validateEnvironment();
@@ -42,6 +44,19 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 
 async function startServer() {
   await runMigrations();
+
+  const storageDriver = getStorageDriver();
+  if (storageDriver) {
+    const where =
+      storageDriver === "local"
+        ? ` at ${process.env.LOCAL_UPLOAD_DIR ?? "./uploads"}`
+        : "";
+    console.log(`[Storage] Driver: ${storageDriver}${where}`);
+  } else {
+    console.warn(
+      "[Storage] No storage configured (set STORAGE_DRIVER=local + LOCAL_UPLOAD_DIR, or Forge credentials) — uploads will return 503"
+    );
+  }
 
   const app = express();
   const server = createServer(app);
@@ -70,6 +85,9 @@ async function startServer() {
   if (process.env.NODE_ENV === "development") {
     app.use("/uploads", express.static(LOCAL_UPLOAD_DIR));
   }
+
+  // Authenticated, decrypting file downloads (own rate limit, see files.ts)
+  app.use("/api", filesRouter);
 
   // Rate limiting — only applies to /api routes, NOT to Vite-served modules
   app.use("/api", rateLimitMiddleware);

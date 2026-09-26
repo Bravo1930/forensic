@@ -253,9 +253,8 @@ function EvidenceList({
                 {e.isKeyEvidence ? "Quitar clave" : "Marcar clave"}
               </Button>
               <a
-                href={e.s3Url}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={`/api/evidence/${e.id}/file?download=1`}
+                download
                 onClick={ev => ev.stopPropagation()}
               >
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0">

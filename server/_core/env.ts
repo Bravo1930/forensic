@@ -1,13 +1,44 @@
-export function validateEnvironment(): void {
-  const isProduction = process.env.NODE_ENV === "production";
+/**
+ * Parse EVIDENCE_ENCRYPTION_KEY: exactly 32 bytes, given as 64 hex chars or
+ * base64. Returns null when missing or malformed.
+ */
+export function parseEvidenceKey(raw: string | undefined): Buffer | null {
+  const value = raw?.trim();
+  if (!value) return null;
+  if (/^[0-9a-fA-F]{64}$/.test(value)) return Buffer.from(value, "hex");
+  if (/^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
+    const buf = Buffer.from(value, "base64");
+    if (buf.length === 32) return buf;
+  }
+  return null;
+}
 
+const STORAGE_DRIVERS = ["local", "forge"] as const;
+
+export function validateEnvironment(): void {
+  // Both secrets are required in every environment: there is no safe default.
   if (!process.env.JWT_SECRET) {
-    const msg =
+    throw new Error(
       "[SECURITY] CRITICAL: JWT_SECRET environment variable is not set. " +
-      "Generate one with: openssl rand -base64 48";
-    if (isProduction) throw new Error(msg);
-    console.error(msg);
-  } else if (process.env.JWT_SECRET.length < 32) {
+        "Generate one with: openssl rand -base64 48"
+    );
+  }
+  if (!parseEvidenceKey(process.env.EVIDENCE_ENCRYPTION_KEY)) {
+    throw new Error(
+      "[SECURITY] CRITICAL: EVIDENCE_ENCRYPTION_KEY is missing or invalid. " +
+        "It must be 32 random bytes as 64 hex chars or base64. " +
+        "Generate one with: openssl rand -base64 32"
+    );
+  }
+
+  const driver = process.env.STORAGE_DRIVER?.trim().toLowerCase();
+  if (driver && !(STORAGE_DRIVERS as readonly string[]).includes(driver)) {
+    throw new Error(
+      `[CONFIG] STORAGE_DRIVER="${process.env.STORAGE_DRIVER}" is invalid. Use one of: ${STORAGE_DRIVERS.join(", ")}`
+    );
+  }
+
+  if (process.env.JWT_SECRET.length < 32) {
     console.error(
       "[SECURITY] WARNING: JWT_SECRET is less than 32 characters. " +
         "Use a cryptographically random value of at least 32 characters."
@@ -45,7 +76,8 @@ export function validateEnvironment(): void {
 
 export const ENV = {
   appId: process.env.VITE_APP_ID ?? "",
-  cookieSecret: process.env.JWT_SECRET ?? "insecure-default-change-me",
+  // No fallback: validateEnvironment() refuses to start without it.
+  cookieSecret: process.env.JWT_SECRET ?? "",
   databaseUrl: process.env.DATABASE_URL ?? "",
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",

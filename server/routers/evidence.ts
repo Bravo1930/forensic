@@ -10,7 +10,7 @@ import {
   updateEvidenceImageAnalysis,
   updateStorageUsed,
 } from "../db";
-import { storageGet, storagePut } from "../storage";
+import { requireStorage, storagePut, storageRead } from "../storage";
 import { extractFileMetadata } from "../forensicAI";
 import {
   analyzeImageForensics,
@@ -21,6 +21,11 @@ import {
 } from "../imageAnalysis";
 import { protectedProcedure, router } from "../_core/trpc";
 import { sanitizedString, sanitizedTextarea } from "../_core/sanitization";
+
+/** Authenticated, decrypting download route — see server/routes/files.ts */
+export function evidenceFileUrl(id: number) {
+  return `/api/evidence/${id}/file`;
+}
 
 function randomSuffix() {
   return Math.random().toString(36).slice(2, 10);
@@ -84,6 +89,9 @@ export const evidenceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      // Fail fast with a clear 503 before decoding anything
+      requireStorage();
+
       // Enforce maximum file size (7MB effective after base64 decoding)
       const MAX_EVIDENCE_SIZE_BYTES = 7 * 1024 * 1024;
       if (input.sizeBytes > MAX_EVIDENCE_SIZE_BYTES) {
@@ -117,9 +125,10 @@ export const evidenceRouter = router({
       // Upload to encrypted storage
       const fileBuffer = Buffer.from(input.base64Data, "base64");
       const safeFilename = input.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const s3Key = `evidence/${ctx.user.id}/${input.caseId}/${safeFilename}-${randomSuffix()}`;
-      const { url, key: storedKey } = await storagePut(
-        s3Key,
+      const rawKey = `evidence/${ctx.user.id}/${input.caseId}/${safeFilename}-${randomSuffix()}`;
+      // storedKey carries the ".enc_" prefix: it is where the file actually lives
+      const { key: storedKey } = await storagePut(
+        rawKey,
         fileBuffer,
         input.mimeType,
         true // encrypt at rest
@@ -162,8 +171,8 @@ export const evidenceRouter = router({
         originalName: input.filename,
         mimeType: input.mimeType,
         sizeBytes: input.sizeBytes,
-        s3Key,
-        s3Url: url,
+        s3Key: storedKey,
+        s3Url: "",
         evidenceType,
         metadata:
           typeof finalMetadata === "string"
@@ -202,12 +211,17 @@ export const evidenceRouter = router({
         })();
       }
 
+      // Files are encrypted at rest, so clients always go through the
+      // authenticated, decrypting endpoint rather than a raw storage URL
+      const fileUrl = evidenceFileUrl(result);
+      await updateEvidence(result, ctx.user.id, { s3Url: fileUrl });
+
       // Update storage usage
       await updateStorageUsed(ctx.user.id, input.sizeBytes);
 
       return {
         id: result,
-        s3Url: url,
+        s3Url: fileUrl,
         hasImageAnalysis: isImageMimeType(input.mimeType),
       };
     }),
@@ -233,13 +247,19 @@ export const evidenceRouter = router({
       }
 
       // Read and decrypt the image from storage, then convert to data URL
-      const stored = item.s3Key
-        ? await storageGet(item.s3Key).catch(() => null)
+      const decrypted = item.s3Key
+        ? await storageRead(item.s3Key).catch(err => {
+            console.warn("[Evidence] Could not read stored image:", err);
+            return null;
+          })
         : null;
-      const imageUrl =
-        stored?.decrypted && item.mimeType
-          ? `data:${item.mimeType};base64,${stored.decrypted.toString("base64")}`
-          : (item.s3Url ?? "");
+      if (!decrypted) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No se pudo leer el archivo de esta evidencia.",
+        });
+      }
+      const imageUrl = `data:${item.mimeType ?? "application/octet-stream"};base64,${decrypted.toString("base64")}`;
 
       const vision = await analyzeImageForensics(
         imageUrl,

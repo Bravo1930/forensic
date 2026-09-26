@@ -8,7 +8,7 @@ import {
   getReportsByCase,
   updateReport,
 } from "../db";
-import { storagePut } from "../storage";
+import { requireStorage, storagePut } from "../storage";
 import { protectedProcedure, router } from "../_core/trpc";
 
 function randomSuffix() {
@@ -551,6 +551,9 @@ export const reportsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      // Fail fast with a clear 503 before creating a report record
+      requireStorage();
+
       const caseData = await getCaseById(input.caseId, ctx.user.id);
       if (!caseData)
         throw new TRPCError({
@@ -599,22 +602,26 @@ export const reportsRouter = router({
             ctx.user.name ?? ctx.user.email ?? "Perito"
           );
 
-      // Store HTML as the report (clients render it as PDF)
-      const s3Key = `reports/${ctx.user.id}/${input.caseId}/report-${randomSuffix()}.html`;
-      const { url } = await storagePut(
-        s3Key,
+      // Store HTML as the report (clients render it as PDF). Reports contain
+      // case details, so they are encrypted at rest like evidence and served
+      // only through the authenticated /api/reports/:id/file route.
+      const rawKey = `reports/${ctx.user.id}/${input.caseId}/report-${randomSuffix()}.html`;
+      const { key: s3Key } = await storagePut(
+        rawKey,
         Buffer.from(htmlContent, "utf-8"),
-        "text/html"
+        "text/html",
+        true
       );
 
       const reportId =
         typeof reportRecord === "number" ? reportRecord : reportRecord;
+      const url = `/api/reports/${reportId}/file`;
       await updateReport(reportId, ctx.user.id, {
         s3Key,
-        s3Url: url ?? "",
+        s3Url: url,
         status: "listo",
       });
 
-      return { id: reportId, url: url ?? "", title: title ?? "Reporte" };
+      return { id: reportId, url, title: title ?? "Reporte" };
     }),
 });

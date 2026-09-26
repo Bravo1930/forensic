@@ -195,6 +195,9 @@ class SDKServer {
 
   private getSessionSecret() {
     const secret = ENV.cookieSecret;
+    if (!secret) {
+      throw new Error("JWT_SECRET is not configured");
+    }
     return new TextEncoder().encode(secret);
   }
 
