@@ -494,6 +494,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         // Two images + the forensic prompt are ~3k tokens and the answer up
         // to ~2k; Ollama's default window would silently truncate that.
         num_ctx: ENV.ollamaNumCtx,
+        ...(ENV.ollamaNumThread ? { num_thread: ENV.ollamaNumThread } : {}),
       },
     };
 

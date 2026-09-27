@@ -98,6 +98,12 @@ export const ENV = {
   // Must be a vision model: evidence analysis sends images.
   ollamaModel: process.env.OLLAMA_MODEL ?? "qwen3.5:4b",
   ollamaNumCtx: parseInt(process.env.OLLAMA_NUM_CTX ?? "16384", 10),
+  // llama.cpp sizes its thread pool from the host's cores, not the
+  // container's CPU limit (48 threads on an 8 vCPU Railway service), and the
+  // contention makes inference crawl. Set to the container's vCPU count.
+  ollamaNumThread: process.env.OLLAMA_NUM_THREAD
+    ? parseInt(process.env.OLLAMA_NUM_THREAD, 10)
+    : undefined,
   rateLimits: {
     free: parseInt(process.env.RATE_LIMIT_FREE ?? "30", 10),
     premium: parseInt(process.env.RATE_LIMIT_PREMIUM ?? "100", 10),
