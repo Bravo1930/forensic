@@ -257,6 +257,17 @@ describe("buildImageForensicSummary", () => {
     expect(summary).not.toContain("EXIF");
   });
 
+  it("handles a stored analysis with no EXIF key", () => {
+    // What upload/analyzeImage persisted before EXIF was stored with vision
+    const { exif: _exif, ...stored } = mockResult;
+    const summary = buildImageForensicSummary(
+      "test.png",
+      stored as ImageAnalysisResult
+    );
+    expect(summary).toContain("test.png");
+    expect(summary).not.toContain("EXIF");
+  });
+
   it("handles empty OCR text gracefully", () => {
     const resultNoOcr: ImageAnalysisResult = {
       ...mockResult,

@@ -206,7 +206,7 @@ export const evidenceRouter = router({
               await updateEvidenceImageAnalysis(
                 result,
                 ctx.user.id,
-                { vision, analysisTimestamp: new Date().toISOString() },
+                { exif, vision, analysisTimestamp: new Date().toISOString() },
                 vision.ocrText
               );
             }

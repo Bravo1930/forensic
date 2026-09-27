@@ -762,7 +762,9 @@ export function buildImageForensicSummary(
   filename: string,
   result: ImageAnalysisResult
 ): string {
-  const { exif, vision } = result;
+  const { vision } = result;
+  // Stored analyses may predate EXIF being persisted alongside vision
+  const exif = result.exif ?? {};
   const lines: string[] = [];
 
   lines.push(`=== ANÁLISIS FORENSE DE IMAGEN: ${filename} ===`);
