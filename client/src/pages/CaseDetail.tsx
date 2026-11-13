@@ -582,6 +582,7 @@ export default function CaseDetail() {
     { id: caseId },
     {
       enabled: !!caseId,
+      staleTime: 60 * 1000, // 1 minute cache
     }
   );
 
@@ -589,7 +590,7 @@ export default function CaseDetail() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Skeleton className="h-6 w-full bg-card border-border animate-pulse" />
         </div>
       </DashboardLayout>
     );
@@ -762,6 +763,7 @@ export default function CaseDetail() {
               </CardContent>
             </Card>
           </TabsContent>
+          </TabsContent>
 
           <TabsContent value="reportes" className="mt-4">
             <ReportsList caseId={caseId} />
@@ -774,12 +776,16 @@ export default function CaseDetail() {
 
 function ReportsList({ caseId }: { caseId: number }) {
   const { data: reportsList = [], isLoading } =
-    trpc.reports.listByCase.useQuery({ caseId });
+    trpc.reports.listByCase.useQuery({ caseId }, {
+      staleTime: 30 * 1000,
+      retry: 1,
+    });
 
   if (isLoading)
     return (
       <div className="py-8 text-center text-muted-foreground text-sm">
-        Cargando reportes...
+        <Skeleton className="h-6 w-full bg-card border-border animate-pulse" />
+        <p className="text-muted-foreground mt-2">Cargando reportes...</p>
       </div>
     );
 

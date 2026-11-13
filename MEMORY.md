@@ -1,0 +1,4 @@
+- Login forgot password flow: added isForgotPassword state, forgot password form with email input, cancel/submit buttons, onFocus error clearing, aria-label on "¿Olvidaste tu contraseña?" link — client/src/pages/Login.tsx
+- All 10 bugs from 13/11/2026 functional testing fixed and verified
+- All 124 tests pass
+- Pre-existing TS errors in CaseDetail.tsx/Registro.tsx unrelated to these fixes

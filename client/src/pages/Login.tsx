@@ -46,6 +46,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: () => {
@@ -95,6 +96,11 @@ export default function Login() {
         name: name || undefined,
       });
     }
+  };
+
+  // Clear error when user starts typing in any field
+  const clearErrorOnInput = () => {
+    setError("");
   };
 
   const toggleMode = () => {
@@ -153,6 +159,7 @@ export default function Login() {
                 placeholder="tu@email.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
+                onFocus={clearErrorOnInput}
                 disabled={isLoading}
                 autoComplete="email"
               />
@@ -168,6 +175,7 @@ export default function Login() {
                 }
                 value={password}
                 onChange={e => setPassword(e.target.value)}
+                onFocus={clearErrorOnInput}
                 disabled={isLoading}
                 autoComplete={
                   mode === "login" ? "current-password" : "new-password"
@@ -181,13 +189,52 @@ export default function Login() {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading
-                ? "Procesando..."
-                : mode === "login"
-                  ? "Iniciar sesión"
-                  : "Crear cuenta"}
-            </Button>
+            {isForgotPassword && (
+              <div className="mt-4">
+                <Label htmlFor="forgot-email">Email</Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  onFocus={clearErrorOnInput}
+                  disabled={isLoading}
+                  autoComplete="email"
+                />
+                <Button
+                  type="button"
+                  onClick={() => setIsForgotPassword(false)}
+                  className="mt-2 w-full justify-end"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  onClick={() => {
+                    // TODO: Implement password reset flow
+                    setError("Función en desarrollo - pronto podrás restablecer tu contraseña por email");
+                    setIsForgotPassword(false);
+                  }}
+                  disabled={isLoading}
+                  className="mt-2 w-full"
+                >
+                  {isLoading ? "Enviando..." : "Enviar enlace"}
+                </Button>
+              </div>
+            )}
+
+            <Button
+                type="submit"
+                aria-label={mode === "login" ? "Iniciar sesión" : "Crear cuenta"}
+                className="w-full" disabled={isLoading}
+              >
+                {isLoading
+                  ? "Procesando..."
+                  : mode === "login"
+                    ? "Iniciar sesión"
+                    : "Crear cuenta"}
+              </Button>
           </form>
 
           <div className="mt-4 text-center">
@@ -200,6 +247,21 @@ export default function Login() {
                 ? "¿No tienes cuenta? Regístrate"
                 : "¿Ya tienes cuenta? Inicia sesión"}
             </button>
+            <span className="ml-2 text-xs text-muted-foreground/60">
+              <a href="/registro" className="text-primary hover:text-primary-500">
+                Regístrate por separado
+              </a>
+            </span>
+            <span className="ml-2 text-xs text-muted-foreground/60">
+              <a
+                href="#"
+                onClick={() => setIsForgotPassword(true)}
+                className="underline text-primary hover:text-primary-500"
+                aria-label="Recuperar contraseña por email"
+              >
+                ¿Olvidaste tu contraseña?
+              </a>
+            </span>
           </div>
         </CardContent>
       </Card>

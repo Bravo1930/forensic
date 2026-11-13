@@ -2,6 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SecuritySection } from "@/components/SecuritySection";
 import { useLocation } from "wouter";
 import {
   Shield,
@@ -111,7 +112,7 @@ const plans = [
 const stats = [
   { value: "99.9%", label: "Precisión en extracción de metadatos" },
   { value: "<2 min", label: "Tiempo promedio de análisis IA" },
-  { value: "ISO 27001", label: "Estándar de seguridad" },
+  { value: "ISO 27001 & 27037", label: "Controles y arquitectura alineados" },
   { value: "LATAM", label: "Cobertura jurisdiccional" },
 ];
 
@@ -154,7 +155,7 @@ export default function Home() {
               Precios
             </a>
             <a
-              href="#security"
+              href="#seguridad"
               className="hover:text-foreground transition-colors"
             >
               Seguridad
@@ -186,38 +187,35 @@ export default function Home() {
       </nav>
 
       {/* ─── Hero ────────────────────────────────────────────────────── */}
-      <section className="pt-32 pb-20 relative overflow-hidden">
+      <section className="pt-32 sm:pt-36 md:pt-40 lg:pt-44 pb-20 md:pb-28 relative">
         {/* Background grid */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
           style={{
             backgroundImage:
               "linear-gradient(oklch(0.93 0 0) 1px, transparent 1px), linear-gradient(90deg, oklch(0.93 0 0) 1px, transparent 1px)",
             backgroundSize: "40px 40px",
           }}
         />
-        {/* Red glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+        {/* Subtle orange ambient depth glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[450px] bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="container relative">
           <div className="max-w-4xl mx-auto text-center">
-            <Badge
-              variant="outline"
-              className="mb-6 border-primary/30 text-primary bg-primary/10 px-4 py-1.5 text-xs font-medium tracking-widest uppercase"
-            >
-              <AlertTriangle className="w-3 h-3 mr-2" />
-              Plataforma de Análisis Forense Digital
-            </Badge>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-wide bg-orange-500/10 text-orange-400 border border-orange-500/30 mb-8 shadow-sm backdrop-blur-sm">
+              <AlertTriangle className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+              <span>Plataforma de Análisis Forense Digital</span>
+            </div>
 
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.14] text-balance">
               Evidencia Digital
               <br />
-              <span className="text-primary">Convertida en</span>
+              <span className="text-orange-500">Convertida en</span>
               <br />
               Argumentos Legales
             </h1>
 
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+            <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
               Plataforma SaaS de análisis forense digital para abogados y
               peritos. Analiza evidencia con IA, genera dictámenes periciales y
               exporta reportes listos para presentación judicial.
@@ -227,39 +225,44 @@ export default function Home() {
               <Button
                 size="lg"
                 onClick={handleCTA}
-                className="text-base px-8 h-12"
+                className="text-base px-8 h-12 bg-orange-500 hover:bg-orange-600 text-white font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-300 hover:-translate-y-0.5"
               >
-                <Zap className="w-5 h-5 mr-2" />
+                <Zap className="w-5 h-5 mr-2 fill-white" />
                 Comenzar análisis gratis
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                className="text-base px-8 h-12 border-border hover:border-primary/50"
-                onClick={() => navigate("/login")}
+                className="text-base px-8 h-12 border-slate-700/80 bg-slate-900/60 backdrop-blur-sm text-slate-200 hover:text-white hover:border-orange-500/40 hover:bg-slate-800/60 transition-all duration-300"
+                onClick={() => navigate("/demo")}
               >
-                <Scale className="w-5 h-5 mr-2" />
+                <Scale className="w-5 h-5 mr-2 text-orange-400" />
                 Ver demostración
               </Button>
             </div>
 
-            <p className="mt-6 text-sm text-muted-foreground">
+            <p className="mt-6 text-xs sm:text-sm text-slate-400 font-normal">
               Sin tarjeta de crédito · 3 análisis gratuitos · Cancelar en
               cualquier momento
             </p>
           </div>
 
           {/* Stats bar */}
-          <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="mt-16 md:mt-24 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {stats.map(stat => (
               <div
                 key={stat.label}
-                className="text-center p-6 bg-card border border-border rounded-lg"
+                className="group relative rounded-xl p-6 bg-slate-900/60 backdrop-blur-md border border-slate-800 hover:border-orange-500/40 transition-all duration-300 flex flex-col items-center justify-center text-center shadow-lg hover:shadow-orange-500/10 hover:-translate-y-1 overflow-hidden"
               >
-                <div className="text-2xl font-bold text-primary mb-1">
+                {/* Subtle top corner ambient glow */}
+                <div
+                  className="absolute -top-12 -right-12 w-24 h-24 bg-orange-500/10 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                  aria-hidden="true"
+                />
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-orange-400 mb-2 transition-colors group-hover:text-orange-300">
                   {stat.value}
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs md:text-sm text-slate-400 leading-relaxed font-medium">
                   {stat.label}
                 </div>
               </div>
@@ -354,90 +357,7 @@ export default function Home() {
       </section>
 
       {/* ─── Security ────────────────────────────────────────────────── */}
-      <section id="security" className="py-20 border-t border-border">
-        <div className="container">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <Badge
-                variant="outline"
-                className="mb-4 border-border text-muted-foreground text-xs tracking-widest uppercase"
-              >
-                Seguridad
-              </Badge>
-              <h2 className="text-3xl font-bold mb-4">
-                Seguridad de nivel empresarial para datos sensibles
-              </h2>
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                La evidencia legal es confidencial. Nuestra plataforma
-                implementa cifrado en tránsito y en reposo, control de acceso
-                por roles y auditoría completa de todas las operaciones.
-              </p>
-              <div className="space-y-3">
-                {[
-                  "Cifrado AES-256 en almacenamiento S3",
-                  "Transmisión HTTPS/TLS 1.3",
-                  "Autenticación OAuth 2.0",
-                  "Control de acceso basado en roles",
-                  "Auditoría completa de operaciones",
-                  "Aislamiento de datos por usuario",
-                ].map(item => (
-                  <div key={item} className="flex items-center gap-3 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span className="text-muted-foreground">{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="bg-card border border-border rounded-lg p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <Shield className="w-6 h-6 text-primary" />
-                <span className="font-semibold">Panel de Seguridad</span>
-              </div>
-              <div className="space-y-4">
-                {[
-                  {
-                    label: "Cifrado de archivos",
-                    status: "Activo",
-                    color: "text-green-400",
-                  },
-                  {
-                    label: "Autenticación 2FA",
-                    status: "Disponible",
-                    color: "text-green-400",
-                  },
-                  {
-                    label: "Auditoría de acceso",
-                    status: "Registrando",
-                    color: "text-green-400",
-                  },
-                  {
-                    label: "Backup automático",
-                    status: "Cada 24h",
-                    color: "text-blue-400",
-                  },
-                  {
-                    label: "Retención de datos",
-                    status: "Configurable",
-                    color: "text-yellow-400",
-                  },
-                ].map(item => (
-                  <div
-                    key={item.label}
-                    className="flex items-center justify-between py-2 border-b border-border last:border-0"
-                  >
-                    <span className="text-sm text-muted-foreground">
-                      {item.label}
-                    </span>
-                    <span className={`text-xs font-medium ${item.color}`}>
-                      {item.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <SecuritySection />
 
       {/* ─── Pricing ─────────────────────────────────────────────────── */}
       <section id="pricing" className="py-20 border-t border-border bg-card/30">
@@ -500,7 +420,7 @@ export default function Home() {
                 <Button
                   className="w-full"
                   variant={plan.highlighted ? "default" : "outline"}
-                  onClick={handleCTA}
+                  onClick={() => navigate("/suscripcion")}
                 >
                   {plan.cta}
                 </Button>
@@ -550,13 +470,13 @@ export default function Home() {
             derechos reservados.
           </p>
           <div className="flex gap-4 text-xs text-muted-foreground">
-            <a href="#" className="hover:text-foreground transition-colors">
+            <a href="/privacidad" className="hover:text-foreground transition-colors">
               Privacidad
             </a>
-            <a href="#" className="hover:text-foreground transition-colors">
+            <a href="/terminos" className="hover:text-foreground transition-colors">
               Términos
             </a>
-            <a href="#" className="hover:text-foreground transition-colors">
+            <a href="/soporte" className="hover:text-foreground transition-colors">
               Soporte
             </a>
           </div>

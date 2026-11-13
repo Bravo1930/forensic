@@ -188,8 +188,8 @@ export async function ensureSubscription(userId: number) {
     .where(eq(subscriptions.userId, userId))
     .limit(1);
   if (existing.length === 0) {
-    const periodEnd = new Date();
-    periodEnd.setMonth(periodEnd.getMonth() + 1);
+    const now = new Date();
+    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
     await db.insert(subscriptions).values({
       userId,
       plan: "free",
@@ -198,7 +198,7 @@ export async function ensureSubscription(userId: number) {
       casesLimit: 3,
       storageUsedBytes: 0,
       storageLimitBytes: 524288000,
-      periodStart: new Date(),
+      periodStart: now,
       periodEnd,
       active: true,
     });

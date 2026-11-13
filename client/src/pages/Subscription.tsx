@@ -248,9 +248,13 @@ export default function Subscription() {
                       )}
                     </CardTitle>
                     <CardDescription className="text-white/40 text-xs">
-                      {status.periodEnd
-                        ? `Período activo hasta ${new Date(status.periodEnd).toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" })}`
-                        : "Plan gratuito — sin fecha de vencimiento"}
+                      {status.plan === "free"
+                        ? new Date(status.periodEnd) < new Date()
+                          ? "Plan gratuito — activo sin fecha de vencimiento"
+                          : `Período activo hasta ${new Date(status.periodEnd).toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" })}`
+                        : status.periodEnd
+                          ? `Período activo hasta ${new Date(status.periodEnd).toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" })}`
+                          : "Plan gratuito — sin fecha de vencimiento"}
                     </CardDescription>
                   </div>
                 </div>
@@ -419,14 +423,13 @@ export default function Subscription() {
               <p className="text-yellow-400/60 text-xs mt-0.5">
                 Para activar el entorno de pruebas, reclama el sandbox en{" "}
                 <a
-                  href="https://dashboard.stripe.com/claim_sandbox/YWNjdF8xVENrZENJOXlBMW5IRVluLDE3NzQ1NzQyNTEv100TFKGA2Ba"
+                  href="https://dashboard.stripe.com/claim_sandbox"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline text-yellow-300 hover:text-yellow-200"
                 >
                   dashboard.stripe.com
-                </a>{" "}
-                antes del 19 de mayo de 2026.
+                </a>
               </p>
             </div>
           </CardContent>

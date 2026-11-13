@@ -178,7 +178,28 @@ function CaseReports({
     );
   }
 
-  if (reportsList.length === 0) return null;
+  if (reportsList.length === 0) {
+          return (
+            <Card className="bg-card border-border">
+              <CardContent className="py-16 text-center">
+                <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="text-muted-foreground mb-2">Aún no hay reportes generados</p>
+                <p className="text-xs text-muted-foreground">
+                  Los reportes se generan desde el detalle de cada caso, en la
+                  pestaña "Análisis IA"
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetch()}
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Actualizar
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        }
 
   return (
     <div>

@@ -21,6 +21,7 @@ const ImageComparison = lazy(() => import("./pages/ImageComparison"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const PaymentCancelled = lazy(() => import("./pages/PaymentCancelled"));
 const Evidence = lazy(() => import("./pages/Evidence"));
+const Register = lazy(() => import("./pages/Registro"));
 
 function LoadingFallback() {
   return (
@@ -52,6 +53,7 @@ function Router() {
         <Route path="/evidencia" component={Evidence} />
         <Route path="/reportes" component={Reports} />
         <Route path="/suscripcion" component={Subscription} />
+        <Route path="/registro" component={Register} />
         <Route path="/admin" component={Admin} />
         <Route path="/pago/exito" component={PaymentSuccess} />
         <Route path="/pago/cancelado" component={PaymentCancelled} />

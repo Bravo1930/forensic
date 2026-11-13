@@ -282,7 +282,10 @@ export default function Cases() {
     isError,
     error,
     refetch,
-  } = trpc.cases.list.useQuery();
+  } = trpc.cases.list.useQuery(undefined, {
+    staleTime: 30 * 1000, // 30 seconds cache
+    retry: 1,
+  });
 
   const deleteCaseMutation = trpc.cases.delete.useMutation({
     onSuccess: () => {
