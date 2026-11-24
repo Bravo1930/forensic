@@ -1,7 +1,9 @@
 import { useLocation } from "wouter";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import DashboardLayout from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertTriangle,
   Brain,
@@ -38,6 +40,15 @@ export default function Demo() {
   );
 
   const utils = trpc.useUtils();
+  const runContradiction = trpc.analyses.runContradiction.useMutation({
+    onSuccess: () => {
+      toast.success("Análisis de demo generado");
+      void utils.analyses.listByCase.invalidate({ caseId: 1 });
+    },
+    onError: err => {
+      toast.error(err.message ?? "No se pudo generar el análisis");
+    },
+  });
 
   // Try to find a completed contradiction analysis
   const contradictionAnalysis = analyses.find(
@@ -86,8 +97,9 @@ export default function Demo() {
               </p>
               <Button
                 variant="outline"
+                disabled={runContradiction.isPending}
                 onClick={() =>
-                  trpc.analyses.runContradiction.mutate({
+                  runContradiction.mutate({
                     caseId: 1,
                     title: DEMO_ANALYSIS_TITLE,
                   })
@@ -103,7 +115,7 @@ export default function Demo() {
     );
   }
 
-  // Show the case detail with the contradiction analysis
+  // Show the completed contradiction analysis
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -114,7 +126,24 @@ export default function Demo() {
           ]}
           onNavigate={navigate}
         />
-        <CaseDetail caseId={1} analysisId={contradictionAnalysis.id} />
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-2xl font-bold">
+              {contradictionAnalysis.title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              Análisis de contradicciones completado para el caso de demo.
+            </p>
+            <Button
+              onClick={() => navigate(`/analisis/${contradictionAnalysis.id}`)}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Ver análisis
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

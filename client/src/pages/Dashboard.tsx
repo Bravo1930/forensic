@@ -142,14 +142,24 @@ function CapacityRing({
       />
       <text
         x="22"
-        y="26"
+        y="20"
         textAnchor="middle"
-        fontSize="10"
+        fontSize="11"
         fontWeight="600"
         fill="currentColor"
         className="text-white"
       >
-        {pct}% usado
+        {pct}%
+      </text>
+      <text
+        x="22"
+        y="30"
+        textAnchor="middle"
+        fontSize="6.5"
+        fill="currentColor"
+        className="text-white/60"
+      >
+        usado
       </text>
     </svg>
   );
@@ -325,7 +335,6 @@ function CasesByTypeChart({
 }: {
   cases: { caseType: string; status: string }[];
 }) {
-  const chartRef = useRef<HTMLDivElement>(null);
   const typeLabels: Record<string, string> = {
     civil: "Civil",
     penal: "Penal",
@@ -346,7 +355,10 @@ function CasesByTypeChart({
     {} as Record<string, number>
   );
 
-  const total = Object.values(byType).reduce((a, b) => a + b, 0) || 1;
+  const entries = Object.entries(byType)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const total = entries.reduce((a, [, count]) => a + count, 0);
   const colors = [
     "#6366f1",
     "#f43f5e",
@@ -357,45 +369,43 @@ function CasesByTypeChart({
     "#ec4899",
   ];
 
-  useGSAP(
-    () => {
-      gsap.set(".chart-bar", { height: 0 });
-      gsap.to(".chart-bar", {
-        height: (i: number, el: HTMLElement) =>
-          el.getAttribute("data-height") + "%",
-        duration: 1,
-        stagger: 0.08,
-        ease: "power3.out",
-      });
-    },
-    { scope: chartRef, dependencies: [cases] }
-  );
+  // Bar heights are set in JSX (px). The old code animated them with GSAP
+  // percentage heights, but the bar's parent column has no definite height,
+  // so the percentages resolved to 0 and the chart rendered empty.
+  const BAR_AREA_PX = 64;
+
+  if (entries.length === 0) {
+    return (
+      <div className="h-24 flex items-center justify-center px-2">
+        <p className="text-sm text-white/40">Sin casos activos</p>
+      </div>
+    );
+  }
 
   return (
-    <div
-      ref={chartRef}
-      className="flex items-end justify-between gap-2 h-24 px-2"
-    >
-      {Object.entries(byType)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([type, count], i) => {
-          const height = Math.max(20, (count / total) * 100);
-          return (
-            <div key={type} className="flex flex-col items-center gap-2 flex-1">
-              <div
-                className="chart-bar w-full rounded-t-md transition-all duration-300 hover:opacity-80"
-                data-height={height}
-                style={{
-                  backgroundColor: colors[i % colors.length],
-                }}
-              />
-              <span className="text-[9px] text-white/40 uppercase tracking-wider">
-                {typeLabels[type] || type}
-              </span>
-            </div>
-          );
-        })}
+    <div className="flex items-end justify-between gap-2 h-24 px-2">
+      {entries.map(([type, count], i) => {
+        const height = Math.max(
+          8,
+          Math.round((count / total) * BAR_AREA_PX)
+        );
+        return (
+          <div key={type} className="flex flex-col items-center gap-1 flex-1">
+            <span className="text-xs font-medium text-white/80">{count}</span>
+            <div
+              className="w-full rounded-t-md transition-all duration-300 hover:opacity-80"
+              style={{
+                height: `${height}px`,
+                backgroundColor: colors[i % colors.length],
+              }}
+              title={`${typeLabels[type] || type}: ${count}`}
+            />
+            <span className="text-[9px] text-white/40 uppercase tracking-wider">
+              {typeLabels[type] || type}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -508,23 +518,39 @@ export default function Dashboard() {
 
   useGSAP(
     () => {
-      gsap.from(".stat-card", {
-        y: 30,
-        autoAlpha: 0,
-        duration: 0.6,
-        stagger: 0.1,
-        ease: "power3.out",
-        clearProps: "transform",
-      });
+      // fromTo + immediateRender: false: the cards render at their natural
+      // (visible) state until the tween actually runs, and clearProps
+      // removes every inline style afterwards. A plain gsap.from() hides
+      // them at setup (autoAlpha 0); if the tween is interrupted by a
+      // navigation or an unmount, the cards could be left invisible.
+      gsap.fromTo(
+        ".stat-card",
+        { y: 30, autoAlpha: 0 },
+        {
+          y: 0,
+          autoAlpha: 1,
+          duration: 0.6,
+          stagger: 0.1,
+          ease: "power3.out",
+          clearProps: "all",
+          immediateRender: false,
+        }
+      );
 
-      gsap.from(".section-fade", {
-        y: 20,
-        autoAlpha: 0,
-        duration: 0.5,
-        stagger: 0.08,
-        ease: "power2.out",
-        delay: 0.3,
-      });
+      gsap.fromTo(
+        ".section-fade",
+        { y: 20, autoAlpha: 0 },
+        {
+          y: 0,
+          autoAlpha: 1,
+          duration: 0.5,
+          stagger: 0.08,
+          ease: "power2.out",
+          delay: 0.3,
+          clearProps: "all",
+          immediateRender: false,
+        }
+      );
 
       // Breathing animation for the empty state icon
       if (emptyIconRef.current) {

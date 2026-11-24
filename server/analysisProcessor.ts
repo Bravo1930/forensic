@@ -16,6 +16,35 @@ interface AnalysisCaseData {
   forceFresh?: boolean;
 }
 
+/**
+ * Turns a raw failure into the short, user-facing reason stored on the
+ * analysis row. AI jobs most often fail because the Ollama backend is
+ * unreachable in cloud, so that case gets a plain-Spanish message instead
+ * of a raw fetch/connection error.
+ */
+export function toAnalysisErrorMessage(error: unknown): string {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : "Error desconocido";
+  const lower = message.toLowerCase();
+  if (
+    lower.includes("ollama") ||
+    lower.includes("econnrefused") ||
+    lower.includes("econnreset") ||
+    lower.includes("etimedout") ||
+    lower.includes("enotfound") ||
+    lower.includes("fetch failed") ||
+    lower.includes("failed to fetch") ||
+    lower.includes("network")
+  ) {
+    return "El motor de IA (Ollama) no está disponible en este momento. Vuelve a intentarlo más tarde.";
+  }
+  return message.length > 300 ? message.slice(0, 300) + "…" : message;
+}
+
 export async function processForensicAnalysis(
   analysisId: number,
   userId: number,
@@ -60,6 +89,18 @@ export async function processForensicAnalysis(
           : error,
       timestamp: new Date().toISOString(),
     });
+    // Persist the failure reason on the row so the UI can show it and
+    // offer a retry, instead of leaving the analysis stuck in "procesando"
+    // (queue path) or in "error" with no explanation (inline path).
+    try {
+      await updateAnalysis(analysisId, userId, {
+        status: "error",
+        error: toAnalysisErrorMessage(error),
+      });
+    } catch {
+      // If the DB write itself fails, the worker/inline caller still
+      // re-throws and logs; the row keeps its previous state.
+    }
     throw error;
   }
 
@@ -136,6 +177,15 @@ export async function processContradictionAnalysis(
           : error,
       timestamp: new Date().toISOString(),
     });
+    // Persist the failure reason on the row (see processForensicAnalysis).
+    try {
+      await updateAnalysis(analysisId, userId, {
+        status: "error",
+        error: toAnalysisErrorMessage(error),
+      });
+    } catch {
+      // DB write failed; the caller still re-throws and logs.
+    }
     throw error;
   }
 

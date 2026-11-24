@@ -342,14 +342,22 @@ export default function Cases() {
   useGSAP(
     () => {
       if (isLoading) return;
-      gsap.from(".case-card", {
-        y: 20,
-        autoAlpha: 0,
-        duration: 0.4,
-        stagger: { amount: 0.3, from: "start" },
-        ease: "power2.out",
-        clearProps: "transform",
-      });
+      // fromTo + immediateRender: false (see Dashboard): a plain gsap.from()
+      // hides the cards at setup and can leave them invisible if the tween
+      // is interrupted by a navigation.
+      gsap.fromTo(
+        ".case-card",
+        { y: 20, autoAlpha: 0 },
+        {
+          y: 0,
+          autoAlpha: 1,
+          duration: 0.4,
+          stagger: { amount: 0.3, from: "start" },
+          ease: "power2.out",
+          clearProps: "all",
+          immediateRender: false,
+        }
+      );
     },
     { dependencies: [isLoading], scope: casesRef }
   );

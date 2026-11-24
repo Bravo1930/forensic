@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -762,7 +763,6 @@ export default function CaseDetail() {
                 <AnalysisList caseId={caseId} />
               </CardContent>
             </Card>
-          </TabsContent>
           </TabsContent>
 
           <TabsContent value="reportes" className="mt-4">

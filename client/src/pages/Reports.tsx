@@ -12,6 +12,27 @@ import {
   RefreshCw,
   XCircle,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
+
+/**
+ * True once a query has been pending longer than `ms`. React Query has no
+ * built-in request timeout, so a hung fetch would otherwise leave the page
+ * on a textless skeleton forever; the slow-load state gives the user an
+ * explicit "taking too long" message with a retry button instead.
+ */
+function useSlowLoad(isLoading: boolean, ms = 12000) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!isLoading) {
+      setSlow(false);
+      return;
+    }
+    const t = setTimeout(() => setSlow(true), ms);
+    return () => clearTimeout(t);
+  }, [isLoading, ms]);
+  return slow;
+}
 
 const statusConfig: Record<
   string,
@@ -37,6 +58,10 @@ const statusConfig: Record<
 function ReportSkeleton() {
   return (
     <div className="space-y-3">
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Cargando reportes…
+      </p>
       {Array.from({ length: 3 }).map((_, i) => (
         <Card key={i} className="bg-card border-border">
           <CardContent className="p-4">
@@ -55,6 +80,7 @@ function ReportSkeleton() {
 }
 
 export default function Reports() {
+  const [, navigate] = useLocation();
   const {
     data: cases = [],
     isLoading,
@@ -62,6 +88,7 @@ export default function Reports() {
     error,
     refetch,
   } = trpc.cases.list.useQuery();
+  const slowLoad = useSlowLoad(isLoading);
 
   return (
     <DashboardLayout>
@@ -73,7 +100,24 @@ export default function Reports() {
           </p>
         </div>
 
-        {isLoading ? (
+        {isLoading && slowLoad ? (
+          <Card className="bg-card border-border">
+            <CardContent className="py-12 text-center">
+              <Loader2 className="w-10 h-10 text-muted-foreground mx-auto mb-3 animate-spin" />
+              <p className="font-medium mb-1">
+                La carga está tardando demasiado
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                El servidor no responde. Revisa tu conexión e inténtalo de
+                nuevo.
+              </p>
+              <Button variant="outline" onClick={() => refetch()}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Reintentar
+              </Button>
+            </CardContent>
+          </Card>
+        ) : isLoading ? (
           <ReportSkeleton />
         ) : isError ? (
           <Card className="bg-card border-destructive/30">
@@ -98,10 +142,14 @@ export default function Reports() {
               <p className="text-muted-foreground mb-2">
                 No hay reportes generados
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mb-4">
                 Los reportes se generan desde el detalle de cada caso, en la
                 pestaña "Análisis IA"
               </p>
+              <Button onClick={() => navigate("/casos")}>
+                <FileText className="w-4 h-4 mr-2" />
+                Ir a casos
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -123,6 +171,7 @@ function CaseReports({
   caseId: number;
   caseTitle: string;
 }) {
+  const [, navigate] = useLocation();
   const {
     data: reportsList = [],
     isLoading,
@@ -130,10 +179,35 @@ function CaseReports({
     error,
     refetch,
   } = trpc.reports.listByCase.useQuery({ caseId });
+  const slowLoad = useSlowLoad(isLoading);
 
   if (isLoading) {
+    if (slowLoad) {
+      return (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            {caseTitle}
+          </h3>
+          <Card className="bg-card border-border">
+            <CardContent className="py-4 text-center">
+              <p className="text-sm mb-2">
+                La carga de reportes está tardando demasiado
+              </p>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                <RefreshCw className="w-3 h-3 mr-1" /> Reintentar
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
     return (
       <div className="space-y-2">
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Cargando reportes…
+        </p>
         <div className="h-4 w-32 bg-muted rounded animate-pulse mb-2" />
         <div className="space-y-2">
           {Array.from({ length: 2 }).map((_, i) => (
@@ -180,24 +254,39 @@ function CaseReports({
 
   if (reportsList.length === 0) {
           return (
-            <Card className="bg-card border-border">
-              <CardContent className="py-16 text-center">
-                <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground mb-2">Aún no hay reportes generados</p>
-                <p className="text-xs text-muted-foreground">
-                  Los reportes se generan desde el detalle de cada caso, en la
-                  pestaña "Análisis IA"
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => refetch()}
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Actualizar
-                </Button>
-              </CardContent>
-            </Card>
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                {caseTitle}
+              </h3>
+              <Card className="bg-card border-border">
+                <CardContent className="py-16 text-center">
+                  <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-2">Aún no hay reportes generados</p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Los reportes se generan desde el detalle de cada caso, en la
+                    pestaña "Análisis IA"
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => navigate(`/casos/${caseId}`)}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Ir al caso
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => refetch()}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Actualizar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           );
         }
 

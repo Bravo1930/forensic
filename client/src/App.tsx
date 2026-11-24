@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -24,11 +24,34 @@ const Evidence = lazy(() => import("./pages/Evidence"));
 const Register = lazy(() => import("./pages/Registro"));
 
 function LoadingFallback() {
+  // A lazy chunk fetch has no timeout: on a stalled network the fallback
+  // would sit on "Cargando..." forever. After 15s, say so and offer a
+  // reload instead of leaving a dead loading indicator mounted.
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), 15000);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <Spinner className="h-8 w-8 text-foreground" />
-        <p className="text-sm text-muted-foreground">Cargando...</p>
+        {slow ? (
+          <>
+            <p className="text-sm text-muted-foreground">
+              La página está tardando en cargar…
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm hover:opacity-90 cursor-pointer"
+            >
+              Recargar
+            </button>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">Cargando...</p>
+        )}
       </div>
     </div>
   );

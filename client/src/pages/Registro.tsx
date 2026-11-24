@@ -1,10 +1,10 @@
-import { useLocation, useNavigation } from "wouter";
-import { Badge } from "@//components/ui/badge";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import { z } from "zod";
 import { useState } from "react";
 import { AlertTriangle, CheckCircle2, Shield } from "lucide-react";
@@ -83,7 +83,7 @@ export default function Register() {
               <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 mb-4">
                 <p className="text-sm text-destructive">{error}</p>
               </div>
-            })
+            )}
 
 
             <form onSubmit={handleSubmit} className="space-y-4">

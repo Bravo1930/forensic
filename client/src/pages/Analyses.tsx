@@ -13,11 +13,9 @@ import {
   Network,
   RefreshCw,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { useLocation } from "wouter";
-import { List } from "react-window";
-
-const ROW_HEIGHT = 92;
 
 const statusConfig: Record<
   string,
@@ -46,26 +44,14 @@ const statusConfig: Record<
 };
 
 interface AnalysisRowProps {
-  analyses: any[];
+  analysis: any;
   navigate: (path: string) => void;
-  statusConfig: Record<
-    string,
-    { label: string; className: string; icon: React.ElementType }
-  >;
+  onRetry: (id: number) => void;
+  retrying: boolean;
 }
 
-function AnalysisRow({
-  index,
-  style,
-  analyses,
-  navigate,
-  statusConfig,
-}: {
-  index: number;
-  style: React.CSSProperties;
-} & AnalysisRowProps) {
-  const a = analyses[index];
-  const statusCfg = statusConfig[a.status];
+function AnalysisRow({ analysis: a, navigate, onRetry, retrying }: AnalysisRowProps) {
+  const statusCfg = statusConfig[a.status] ?? statusConfig.pendiente;
   const StatusIcon = statusCfg.icon;
   const keyFindingsRaw = a.keyFindings;
   const keyFindings = Array.isArray(keyFindingsRaw)
@@ -91,83 +77,90 @@ function AnalysisRow({
   const graphNodes = relationshipGraph?.nodes?.length ?? 0;
 
   return (
-    <div style={style}>
-      <Card
-        className="bg-card border-border hover:border-primary/30 transition-all cursor-pointer"
-        onClick={() =>
-          a.status === "completado" && navigate(`/analisis/${a.id}`)
-        }
-      >
-        <CardContent className="p-4">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-              <Brain className="w-5 h-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <h3 className="font-semibold text-sm truncate">{a.title}</h3>
-                <Badge
-                  variant="outline"
-                  className={`text-[10px] px-2 py-0 h-5 shrink-0 ${statusCfg.className}`}
-                >
-                  {statusCfg.label}
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground truncate">
-                {(a.evidenceCount ?? 0) > 0 &&
-                  ` · ${a.evidenceCount} evidencias`}
-              </p>
-              {a.status === "completado" && (
-                <div className="flex items-center gap-4 text-xs flex-wrap">
-                  {criticalCount > 0 && (
-                    <span className="flex items-center gap-1 text-red-400">
-                      <AlertTriangle className="w-3 h-3" />
-                      {criticalCount} crítico
-                      {criticalCount !== 1 ? "s" : ""}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1 text-blue-400">
-                    <Clock className="w-3 h-3" />
-                    {timelineCount} eventos
-                  </span>
-                  <span className="flex items-center gap-1 text-green-400">
-                    <Network className="w-3 h-3" />
-                    {graphNodes} entidades
-                  </span>
-                </div>
-              )}
-            </div>
-            {a.status === "completado" && (
-              <Button
-                size="sm"
+    <Card
+      className="bg-card border-border hover:border-primary/30 transition-all cursor-pointer"
+      onClick={() =>
+        a.status === "completado" && navigate(`/analisis/${a.id}`)
+      }
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+            <Brain className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h3 className="font-semibold text-sm truncate">{a.title}</h3>
+              <Badge
                 variant="outline"
-                className="shrink-0 h-8 text-xs"
+                className={`text-[10px] px-2 py-0 h-5 shrink-0 ${statusCfg.className}`}
               >
-                <FileSearch className="w-3.5 h-3.5 mr-1" />
-                Ver
-              </Button>
-            )}
-            {a.status === "error" && (
-              <div className="flex items-center gap-2 mt-3 text-xs text-red-400">
-                <AlertTriangle className="w-3 h-3 mr-1" />
-                <span>Error en el análisis</span>
+                {statusCfg.label}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground truncate">
+              {(a.evidenceCount ?? 0) > 0 &&
+                ` · ${a.evidenceCount} evidencias`}
+            </p>
+            {a.status === "completado" && (
+              <div className="flex items-center gap-4 text-xs flex-wrap mt-1">
+                {criticalCount > 0 && (
+                  <span className="flex items-center gap-1 text-red-400">
+                    <AlertTriangle className="w-3 h-3" />
+                    {criticalCount} crítico
+                    {criticalCount !== 1 ? "s" : ""}
+                  </span>
+                )}
+                <span className="flex items-center gap-1 text-blue-400">
+                  <Clock className="w-3 h-3" />
+                  {timelineCount} eventos
+                </span>
+                <span className="flex items-center gap-1 text-green-400">
+                  <Network className="w-3 h-3" />
+                  {graphNodes} entidades
+                </span>
               </div>
             )}
             {a.status === "error" && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => refetch()}
-                className="mt-2 text-xs"
-              >
-                <RefreshCw className="w-3.5 h-3 mr-1" />
-                Reintentar
-              </Button>
+              <div className="mt-2 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
+                <p className="flex items-start gap-1.5 text-xs text-red-400">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                  <span>
+                    {a.error ??
+                      "El análisis falló. Puedes reintentarlo con la misma evidencia."}
+                  </span>
+                </p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={retrying}
+                  onClick={e => {
+                    e.stopPropagation();
+                    onRetry(a.id);
+                  }}
+                  className="mt-2 text-xs h-7 px-2"
+                >
+                  <RefreshCw
+                    className={`w-3.5 h-3.5 mr-1 ${retrying ? "animate-spin" : ""}`}
+                  />
+                  {retrying ? "Reintentando…" : "Reintentar"}
+                </Button>
+              </div>
             )}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          {a.status === "completado" && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 h-8 text-xs"
+            >
+              <FileSearch className="w-3.5 h-3.5 mr-1" />
+              Ver
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -198,32 +191,30 @@ function AnalysisSkeleton() {
 
 export default function Analyses() {
   const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
   const {
     data: analyses = [],
     isLoading,
     isError,
     error,
     refetch,
-  } = trpc.analyses.listAll.useQuery({
+  } = trpc.analyses.listAll.useQuery(undefined, {
     staleTime: 30 * 1000, // 30 seconds cache
     retry: 1,
     refetchOnWindowFocus: false,
   });
-  const listRef = useRef<HTMLDivElement>(null);
-  const [listHeight, setListHeight] = useState(400);
-
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(entries => {
-      const { height } = entries[0].contentRect;
-      if (height > 0) setListHeight(height);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const itemData = { analyses, navigate, statusConfig };
+  const [retryingId, setRetryingId] = useState<number | null>(null);
+  const retryMutation = trpc.analyses.retry.useMutation({
+    onSuccess: () => {
+      toast.success("Análisis reintentado");
+      setRetryingId(null);
+      void utils.analyses.listAll.invalidate();
+    },
+    onError: err => {
+      toast.error(err.message ?? "No se pudo reintentar el análisis");
+      setRetryingId(null);
+    },
+  });
 
   return (
     <DashboardLayout>
@@ -276,14 +267,19 @@ export default function Analyses() {
             </CardContent>
           </Card>
         ) : (
-          <div ref={listRef} className="flex-1 min-h-0">
-            <List<AnalysisRowProps>
-              style={{ height: listHeight, width: "100%" }}
-              rowCount={analyses.length}
-              rowHeight={ROW_HEIGHT}
-              rowProps={itemData}
-              rowComponent={AnalysisRow}
-            />
+          <div className="space-y-3 overflow-y-auto pr-1">
+            {analyses.map(a => (
+              <AnalysisRow
+                key={a.id}
+                analysis={a}
+                navigate={navigate}
+                retrying={retryingId === a.id}
+                onRetry={id => {
+                  setRetryingId(id);
+                  retryMutation.mutate({ id });
+                }}
+              />
+            ))}
           </div>
         )}
       </div>

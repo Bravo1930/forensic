@@ -15,6 +15,7 @@ import { enqueueAnalysis, enqueueContradictionAnalysis } from "../_core/queue";
 import {
   processForensicAnalysis,
   processContradictionAnalysis,
+  toAnalysisErrorMessage,
 } from "../analysisProcessor";
 import { logSecurityEvent } from "../_core/audit";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -253,6 +254,7 @@ export const analysesRouter = router({
             console.error("[Analysis] AI processing failed:", error);
             await updateAnalysis(analysisId, ctx.user.id, {
               status: "error",
+              error: toAnalysisErrorMessage(error),
             });
           }
         })();
@@ -344,12 +346,139 @@ export const analysesRouter = router({
             );
             await updateAnalysis(analysisId, ctx.user.id, {
               status: "error",
+              error: toAnalysisErrorMessage(error),
             });
           }
         })();
       }
 
       return { id: analysisId, status: "procesando" };
+    }),
+
+  /**
+   * Re-runs a failed analysis with the same evidence. Only analyses in
+   * status "error" can be retried, and the retry does not count against
+   * the subscription quota (the failed run never completed, so it never
+   * incremented usage).
+   */
+  retry: protectedProcedure
+    .input(z.object({ id: z.coerce.number().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await getAnalysisById(input.id, ctx.user.id);
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Análisis no encontrado",
+        });
+      }
+      if (existing.status !== "error") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Solo se pueden reintentar análisis en estado Error",
+        });
+      }
+
+      const caseData = await getCaseById(existing.caseId, ctx.user.id);
+      if (!caseData) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Caso no encontrado",
+        });
+      }
+
+      const evidenceList = await getEvidenceByCase(
+        existing.caseId,
+        ctx.user.id
+      );
+      if (evidenceList.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "El caso ya no tiene evidencia cargada. Sube al menos un archivo antes de reintentar.",
+        });
+      }
+
+      const evidencePayload = getEvidenceText(evidenceList);
+      const userName = ctx.user.name ?? ctx.user.email ?? "Perito";
+      const analysisTitle = existing.title ?? "Análisis Forense";
+
+      await updateAnalysis(existing.id, ctx.user.id, {
+        status: "procesando",
+        error: null,
+      });
+
+      const jobData = {
+        analysisId: existing.id,
+        userId: ctx.user.id,
+        caseId: existing.caseId,
+        caseTitle: caseData.title,
+        caseDescription: caseData.description ?? null,
+        caseType: caseData.caseType,
+        title: analysisTitle,
+        evidenceList: evidencePayload,
+        userName,
+        startTime: Date.now(),
+      };
+
+      let queued = false;
+      try {
+        queued =
+          existing.type === "contradicciones"
+            ? await enqueueContradictionAnalysis({
+                type: "contradiction",
+                ...jobData,
+              })
+            : await enqueueAnalysis({ type: "forensic", ...jobData });
+      } catch (error) {
+        console.error("[Analysis] Retry enqueue failed, running inline:", error);
+        queued = false;
+      }
+
+      if (!queued) {
+        (async () => {
+          try {
+            if (existing.type === "contradicciones") {
+              await processContradictionAnalysis(
+                existing.id,
+                ctx.user.id,
+                analysisTitle,
+                {
+                  caseTitle: caseData.title,
+                  caseDescription: caseData.description ?? null,
+                  caseType: caseData.caseType,
+                  evidenceList: evidencePayload,
+                  userName,
+                  startTime: Date.now(),
+                }
+              );
+            } else {
+              await processForensicAnalysis(
+                existing.id,
+                ctx.user.id,
+                analysisTitle,
+                {
+                  caseTitle: caseData.title,
+                  caseDescription: caseData.description ?? null,
+                  caseType: caseData.caseType,
+                  evidenceList: evidencePayload,
+                  userName,
+                  startTime: Date.now(),
+                }
+              );
+            }
+          } catch (error) {
+            console.error("[Analysis] Retry processing failed:", error);
+            // processForensicAnalysis/processContradictionAnalysis already
+            // persisted the error reason; this is only a safety net.
+            await updateAnalysis(existing.id, ctx.user.id, {
+              status: "error",
+              error: toAnalysisErrorMessage(error),
+            });
+          }
+        })();
+      }
+
+      return { id: existing.id, status: "procesando" };
     }),
 
   getStatus: protectedProcedure
