@@ -119,29 +119,15 @@ export const stripeRouter = router({
         ctx.user.name
       );
 
-      // Build price data if no stripePriceId configured (create on-the-fly for sandbox)
-      let priceId = plan.stripePriceId;
-
+      // Prices must be configured in Stripe (STRIPE_PRICE_* env vars).
+      // Never create products/prices on the fly: that would duplicate a
+      // product in Stripe on every checkout while the env var is missing.
+      const priceId = plan.stripePriceId;
       if (!priceId) {
-        // Create product + price dynamically in Stripe sandbox
-        const product = await stripe.products.create({
-          name: plan.name,
-          description: `ForensicLegal ${plan.name} - Plataforma de análisis forense digital`,
-          metadata: { planKey: plan.planKey, interval: plan.interval },
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Precios de Stripe no configurados para el plan ${plan.name}`,
         });
-
-        const price = await stripe.prices.create({
-          product: product.id,
-          unit_amount: plan.amountCents,
-          currency: "usd",
-          recurring: { interval: plan.interval },
-          metadata: { planKey: plan.planKey },
-        });
-
-        priceId = price.id;
-
-        // Save price ID to env-like metadata for future use
-        console.log(`[Stripe] Created price ${priceId} for plan ${plan.name}`);
       }
 
       const session = await stripe.checkout.sessions.create({

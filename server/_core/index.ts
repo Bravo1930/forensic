@@ -116,6 +116,12 @@ async function startServer() {
     })
   );
 
+  // Any /api path that reached here matches no route: answer JSON 404, never
+  // the SPA shell — otherwise API clients (e.g. Stripe webhooks) get HTML.
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "Not found" });
+  });
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

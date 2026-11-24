@@ -1,11 +1,11 @@
 /**
  * Stripe Products & Prices for ForensicLegal Platform
  *
- * Plans:
- *  - Premium Mensual  → $49 USD/month
- *  - Premium Anual    → $470 USD/year  (~$39.17/month, 20% off)
- *  - Empresarial Mensual → $149 USD/month
- *  - Empresarial Anual   → $1,430 USD/year (~$119.17/month, 20% off)
+ * Plans (MXN):
+ *  - Premium Mensual  → $850 MXN/month
+ *  - Premium Anual    → $8,500 MXN/year  (10 meses: 2 meses gratis)
+ *  - Empresarial Mensual → $2,600 MXN/month
+ *  - Empresarial Anual   → $26,000 MXN/year  (10 meses: 2 meses gratis)
  */
 
 export interface PlanPrice {
@@ -38,8 +38,8 @@ export const STRIPE_PLANS: PlanPrice[] = [
     name: "Premium Mensual",
     planKey: "premium",
     interval: "month",
-    amountCents: 4900,
-    displayPrice: "$49",
+    amountCents: 85000,
+    displayPrice: "$850",
     displayInterval: "/mes",
     stripePriceId: process.env.STRIPE_PRICE_PREMIUM_MONTHLY ?? "",
     features: [
@@ -60,8 +60,8 @@ export const STRIPE_PLANS: PlanPrice[] = [
     name: "Premium Anual",
     planKey: "premium",
     interval: "year",
-    amountCents: 47000,
-    displayPrice: "$470",
+    amountCents: 850000,
+    displayPrice: "$8,500",
     displayInterval: "/año",
     stripePriceId: process.env.STRIPE_PRICE_PREMIUM_ANNUAL ?? "",
     features: [
@@ -73,7 +73,7 @@ export const STRIPE_PLANS: PlanPrice[] = [
       "Análisis de imágenes con visión",
       "Comparación forense de imágenes",
       "Soporte por correo electrónico",
-      "2 meses gratis (ahorro 20%)",
+      "2 meses gratis (paga 10 meses)",
     ],
     analysesLimit: 20,
     storageGb: 10,
@@ -83,8 +83,8 @@ export const STRIPE_PLANS: PlanPrice[] = [
     name: "Empresarial Mensual",
     planKey: "enterprise",
     interval: "month",
-    amountCents: 14900,
-    displayPrice: "$149",
+    amountCents: 260000,
+    displayPrice: "$2,600",
     displayInterval: "/mes",
     stripePriceId: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY ?? "",
     features: [
@@ -107,8 +107,8 @@ export const STRIPE_PLANS: PlanPrice[] = [
     name: "Empresarial Anual",
     planKey: "enterprise",
     interval: "year",
-    amountCents: 143000,
-    displayPrice: "$1,430",
+    amountCents: 2600000,
+    displayPrice: "$26,000",
     displayInterval: "/año",
     stripePriceId: process.env.STRIPE_PRICE_ENTERPRISE_ANNUAL ?? "",
     features: [
@@ -122,7 +122,7 @@ export const STRIPE_PLANS: PlanPrice[] = [
       "API de integración",
       "Soporte prioritario 24/7",
       "Usuarios múltiples (hasta 10)",
-      "2 meses gratis (ahorro 20%)",
+      "2 meses gratis (paga 10 meses)",
     ],
     analysesLimit: 999999,
     storageGb: 100,

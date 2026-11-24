@@ -1,8 +1,14 @@
 /**
  * Stripe Webhook Handler
  * Registered as a raw Express route BEFORE express.json() middleware.
- * Handles: checkout.session.completed, customer.subscription.updated,
- *          customer.subscription.deleted, invoice.paid
+ * Handles: checkout.session.completed, customer.subscription.created,
+ *          customer.subscription.updated, customer.subscription.deleted,
+ *          invoice.paid / invoice.payment_succeeded, invoice.payment_failed
+ *
+ * The route is ALWAYS registered, even when the Stripe keys are not
+ * configured yet: in that case it answers 500 JSON instead of falling
+ * through to the SPA fallback (which used to answer index.html for
+ * POST /api/stripe/webhook, making the endpoint look dead).
  */
 
 import express, { type Express, type Request, type Response } from "express";
@@ -117,32 +123,37 @@ export function registerStripeWebhook(app: Express): void {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  if (!secretKey) {
-    console.warn("[Stripe] STRIPE_SECRET_KEY not set, webhook disabled");
-    return;
+  if (!secretKey || !webhookSecret) {
+    console.warn(
+      "[Stripe] STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET not set — webhook route registered but will answer 500 until configured"
+    );
   }
 
-  const stripe = new Stripe(secretKey, { apiVersion: "2026-02-25.clover" });
-
-  // MUST use express.raw() BEFORE express.json() for signature verification
+  // MUST use express.raw() BEFORE express.json() for signature verification.
+  // The route is registered unconditionally so a missing key can never make
+  // POST /api/stripe/webhook fall through to the SPA fallback (index.html).
   app.post(
     "/api/stripe/webhook",
     express.raw({ type: "application/json" }),
     async (req: Request, res: Response) => {
+      if (!secretKey || !webhookSecret) {
+        console.error(
+          "[Stripe Webhook] STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET not configured — refusing to process unsigned events"
+        );
+        return res.status(500).json({
+          error:
+            "Webhook not configured: missing STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET",
+        });
+      }
+
+      const stripe = new Stripe(secretKey, {
+        apiVersion: "2026-02-25.clover",
+      });
+
       let event: Stripe.Event;
 
       // Verify signature
       try {
-        if (!webhookSecret) {
-          console.error(
-            "[Stripe Webhook] STRIPE_WEBHOOK_SECRET not configured — refusing to process unsigned events"
-          );
-          return res
-            .status(500)
-            .json({
-              error: "Webhook not configured: missing STRIPE_WEBHOOK_SECRET",
-            });
-        }
         const sig = req.headers["stripe-signature"] as string;
         event = stripe.webhooks.constructEvent(
           req.body as Buffer,
@@ -218,7 +229,10 @@ export function registerStripeWebhook(app: Express): void {
               content: `Plan: ${planInfo?.name ?? "Premium"}\nEmail: ${session.metadata?.customer_email ?? ""}\nUsuario ID: ${userId}\nMonto: $${((session.amount_total ?? 0) / 100).toFixed(2)} USD`,
             });
           }
-        } else if (event.type === "customer.subscription.updated") {
+        } else if (
+          event.type === "customer.subscription.created" ||
+          event.type === "customer.subscription.updated"
+        ) {
           const rawSub = event.data.object;
           const sub = rawSub as unknown as StripeSub;
           const userId = parseInt(sub.metadata?.userId ?? "0", 10);
@@ -279,7 +293,10 @@ export function registerStripeWebhook(app: Express): void {
               );
             }
           }
-        } else if (event.type === "invoice.paid") {
+        } else if (
+          event.type === "invoice.paid" ||
+          event.type === "invoice.payment_succeeded"
+        ) {
           const invoice = event.data.object as unknown as {
             subscription?: string | { id: string };
           };
@@ -308,6 +325,23 @@ export function registerStripeWebhook(app: Express): void {
               }
             }
           }
+        } else if (event.type === "invoice.payment_failed") {
+          const invoice = event.data.object as unknown as {
+            subscription?: string | { id: string };
+            customer?: string | { id: string };
+            amount_due?: number;
+            currency?: string;
+          };
+          // Stripe retries failed payments automatically; the plan is left
+          // untouched here — a later customer.subscription.updated reflects
+          // any status change. Just log + notify the owner.
+          console.warn(
+            `[Stripe Webhook] Payment failed for invoice (subscription ${typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id ?? "?"}, amount ${((invoice.amount_due ?? 0) / 100).toFixed(2)} ${(invoice.currency ?? "").toUpperCase()})`
+          );
+          await notifyOwner({
+            title: "⚠️ Pago de suscripción fallido",
+            content: `Suscripción: ${typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id ?? "?"}\nMonto: ${((invoice.amount_due ?? 0) / 100).toFixed(2)} ${(invoice.currency ?? "").toUpperCase()}`,
+          });
         } else {
           console.log(`[Stripe Webhook] Unhandled event type: ${event.type}`);
         }

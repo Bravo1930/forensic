@@ -120,12 +120,19 @@ describe("stripe webhook logic", () => {
   it("maps checkout.session.completed to subscription activation", () => {
     const supportedEvents = [
       "checkout.session.completed",
+      "customer.subscription.created",
       "customer.subscription.updated",
       "customer.subscription.deleted",
       "invoice.paid",
+      "invoice.payment_succeeded",
+      "invoice.payment_failed",
     ];
     expect(supportedEvents).toContain("checkout.session.completed");
+    expect(supportedEvents).toContain("customer.subscription.created");
+    expect(supportedEvents).toContain("customer.subscription.updated");
     expect(supportedEvents).toContain("customer.subscription.deleted");
+    expect(supportedEvents).toContain("invoice.payment_succeeded");
+    expect(supportedEvents).toContain("invoice.payment_failed");
   });
 
   it("calculates correct plan limits for premium", () => {

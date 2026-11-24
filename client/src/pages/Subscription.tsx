@@ -15,7 +15,6 @@ import {
   AlertCircle,
   BadgeCheck,
   Building2,
-  Calendar,
   CheckCircle2,
   CreditCard,
   ExternalLink,
@@ -98,7 +97,7 @@ function PlanCard({
         </div>
         {interval === "year" && (
           <p className="text-green-400 text-xs font-medium mt-1">
-            ✓ Ahorra 20% con el plan anual
+            ✓ 2 meses gratis con el plan anual
           </p>
         )}
       </CardHeader>
@@ -412,28 +411,6 @@ export default function Subscription() {
           </CardContent>
         </Card>
 
-        {/* Claim sandbox reminder */}
-        <Card className="border-yellow-800/40 bg-yellow-900/10">
-          <CardContent className="flex items-start gap-3 py-4 px-5">
-            <Calendar className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-yellow-300 text-xs font-medium">
-                Sandbox de Stripe pendiente de reclamar
-              </p>
-              <p className="text-yellow-400/60 text-xs mt-0.5">
-                Para activar el entorno de pruebas, reclama el sandbox en{" "}
-                <a
-                  href="https://dashboard.stripe.com/claim_sandbox"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline text-yellow-300 hover:text-yellow-200"
-                >
-                  dashboard.stripe.com
-                </a>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );
